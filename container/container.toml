@@ -1,0 +1,13 @@
+image = "/capstor/store/cscs/swissai/infra01/container-images/nvidia+nemo-curator+26.04.sqsh"
+
+# "src_path:trg_path" mounts the src_path on the host inside the container at the trg_path.
+mounts = ["/capstor", "/iopsstor", "/users"]
+
+writable = true
+
+# The initial directory in the container.
+workdir = "/users/aborbely"
+
+[annotations]
+com.hooks.aws_ofi_nccl.enabled = "true"
+com.hooks.aws_ofi_nccl.variant = "cuda12"
