@@ -9,21 +9,25 @@
 # one process per node, node 0 becomes the Ray head, the rest join as workers
 # and block until the head's pipeline finishes).
 #
-# By default this runs stage scripts directly against the container's own
-# system Python — the default container (container/container.toml) is
-# NVIDIA's own official nemo-curator image, which already ships a matched
-# torch/RAPIDS/nemo_curator stack, so no install step is needed. Set
-# INSTALL_VENV=1 to fall back to building a disposable `uv sync` venv in a
-# job-scoped tmp directory instead (for a different container that doesn't
-# already have nemo-curator installed — see scripts/CSCS-QUICKSTART.md for
-# why plain `uv pip install`/an unpinned `torch` requirement is a trap
-# there).
+# Runs stage scripts directly against the container's own system Python —
+# the default container (container/container.toml) is NVIDIA's own official
+# nemo-curator image, which already ships a matched torch/RAPIDS/
+# nemo_curator stack (confirmed live end-to-end), so no install step is
+# needed. If you ever need a different container that doesn't already have
+# nemo-curator installed, see scripts/CSCS-QUICKSTART.md's "Background"
+# section — that's a real trap (unpinned torch resolves to a broken
+# CPU-only build), not something to casually improvise around.
 #
 # Prerequisites:
 #   - None — this repo (/users/aborbely/repos/nemotron_cc_pipeline) is on a
 #     shared filesystem already visible from every compute node, so it's
 #     run in place; nothing needs to be copied anywhere. Only the actual
 #     data being processed lives on $SCRATCH — see scripts/CSCS-QUICKSTART.md.
+#     Not repo-location-agnostic: REPO_DIR and --output/--error below are
+#     this repo's actual absolute path, not derived at runtime (sbatch
+#     copies scripts into a per-job spool file, so $0 isn't reliable here —
+#     see REPO_DIR's own comment). If this repo ever moves, update those
+#     three lines (or pass REPO_DIR= as an override).
 #
 # Usage:
 #   STEP_SCRIPT=src/nemotron-cc/step_1-download_extract.py \
@@ -56,8 +60,8 @@
 #SBATCH --exclusive
 #SBATCH --no-requeue
 #SBATCH --time=00:30:00
-#SBATCH --output=logs/nemotron_cc_%j.log
-#SBATCH --error=logs/nemotron_cc_%j.log
+#SBATCH --output=/users/aborbely/repos/nemotron_cc_pipeline/logs/nemotron_cc_%j.log
+#SBATCH --error=/users/aborbely/repos/nemotron_cc_pipeline/logs/nemotron_cc_%j.log
 
 set -euo pipefail
 
@@ -77,7 +81,10 @@ STEP_ARGS="${STEP_ARGS:-}"
 # relative path, so it must run from its own directory).
 STEP_WORKDIR="${STEP_WORKDIR:-}"
 
-REPO_DIR="${REPO_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+# Hardcoded rather than derived from $0: sbatch typically copies the script
+# into a per-job spool file before executing it, so $0 at runtime often
+# isn't this repo's path at all (a real, common sbatch footgun).
+REPO_DIR="${REPO_DIR:-/users/aborbely/repos/nemotron_cc_pipeline}"
 
 # Shared directory for Ray port broadcast — must be visible to ALL nodes.
 # /tmp is typically node-local on HPC clusters, so use the shared filesystem.
@@ -94,47 +101,7 @@ CONTAINER_FLAGS=(--environment="${CONTAINER_ENV}" --container-writable)
 # /users (small home quota, already hit once this project).
 export HF_HOME="${HF_HOME:-${SCRATCH:-${REPO_DIR}}/nemotron-cc-hf-cache}"
 
-# ---------------------------------------------------------------------------
-# Python to run stage scripts with. Default: the container's own system
-# Python (nemo-curator/torch/RAPIDS already installed there — nothing to
-# do). Set INSTALL_VENV=1 for a different container that needs its
-# dependencies installed via `uv sync` into a disposable job-scoped venv.
-# ---------------------------------------------------------------------------
 RUN_PYTHON="python3"
-EXTRA_SETUP_LOG=""
-
-if [[ "${INSTALL_VENV:-0}" == "1" ]]; then
-    JOB_TMP_DIR="${JOB_TMP_DIR:-${SCRATCH:-${REPO_DIR}}/tmp/nemotron-cc-${SLURM_JOB_ID}}"
-    mkdir -p "${JOB_TMP_DIR}"
-    if [[ "${KEEP_JOB_TMP_DIR:-0}" != "1" ]]; then
-        trap 'rm -rf "${JOB_TMP_DIR}"' EXIT
-    fi
-
-    export UV_CACHE_DIR="${JOB_TMP_DIR}/uv-cache"
-    export UV_INSTALL_DIR="${JOB_TMP_DIR}/uv-bin"
-    export UV_PROJECT_ENVIRONMENT="${JOB_TMP_DIR}/venv"
-    export PATH="${UV_INSTALL_DIR}:${PATH}"
-
-    if ! command -v uv >/dev/null 2>&1; then
-        echo "uv not found — installing standalone uv into ${UV_INSTALL_DIR}"
-        curl -LsSf https://astral.sh/uv/install.sh | sh
-    fi
-
-    cd "${REPO_DIR}"
-
-    # system-site-packages so anything the container provides that we don't
-    # install ourselves stays importable.
-    uv venv --system-site-packages "${UV_PROJECT_ENVIRONMENT}" --python 3.12
-
-    # `uv sync`, NOT `uv pip install -e .` — only `uv sync` honors the
-    # pyproject.toml index routing that gets torch's real CUDA build
-    # instead of a broken CPU-only default-PyPI one (see
-    # scripts/CSCS-QUICKSTART.md's dependency gotcha).
-    uv sync ${INSTALL_EXTRAS:+--extra "${INSTALL_EXTRAS}"}
-
-    RUN_PYTHON="uv run --no-sync python"
-    EXTRA_SETUP_LOG="  Venv      : ${UV_PROJECT_ENVIRONMENT}"
-fi
 
 echo "=================================================="
 echo "  Nemotron-CC — SLURM stage run"
@@ -146,10 +113,9 @@ echo "  Stage     : ${STEP_SCRIPT}"
 echo "  Args      : ${STEP_ARGS}"
 echo "  Repo dir  : ${REPO_DIR}"
 echo "  Container : ${CONTAINER_ENV}"
-[[ -n "${EXTRA_SETUP_LOG}" ]] && echo "${EXTRA_SETUP_LOG}"
 echo "=================================================="
 
-mkdir -p logs
+mkdir -p "${REPO_DIR}/logs"
 
 RUN_DIR="${REPO_DIR}${STEP_WORKDIR:+/${STEP_WORKDIR}}"
 
@@ -176,17 +142,14 @@ elif [[ "${SLURM_JOB_NUM_NODES}" -gt 1 ]]; then
 fi
 
 srun \
+    --label \
     "${SRUN_TASK_FLAGS[@]}" \
     "${CONTAINER_FLAGS[@]}" \
     bash -c "
 cd '${RUN_DIR}'
 export RAY_TMPDIR=/tmp/ray_\${SLURM_JOB_ID}
 export RAY_PORT_BROADCAST_DIR='${REPO_DIR}/logs'
-export UV_CACHE_DIR='${UV_CACHE_DIR:-}'
-export UV_INSTALL_DIR='${UV_INSTALL_DIR:-}'
-export UV_PROJECT_ENVIRONMENT='${UV_PROJECT_ENVIRONMENT:-}'
 export HF_HOME='${HF_HOME:-}'
-export PATH='${UV_INSTALL_DIR:-}:\${PATH}'
 echo \"[\$(hostname)] SLURM_NODEID=\${SLURM_NODEID} python=\$(${RUN_PYTHON} --version 2>&1)\"
 nvidia-smi --query-gpu=index,name,memory.total --format=csv,noheader 2>/dev/null \
     | sed \"s/^/  [\$(hostname)] GPU /\" || echo \"  [\$(hostname)] no GPUs\"

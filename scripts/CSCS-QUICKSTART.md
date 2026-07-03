@@ -167,10 +167,13 @@ source "$UV_PROJECT_ENVIRONMENT/bin/activate"
 uv sync   # NOT `uv pip install -e .` — see "Background" below for why
 ```
 
-For `sbatch`/multi-node with a non-default container, set
-`CONTAINER_ENV=<path>` and `INSTALL_VENV=1` — `run_stage.sbatch` then
-builds the same disposable venv in a job-scoped tmp dir under `$SCRATCH`
-before running. `INSTALL_EXTRAS=sdg` also installs `vllm`.
+For `sbatch`/multi-node with a non-default container, `run_stage.sbatch`
+doesn't build a venv for you — it only ever runs stage scripts directly
+against `python3`. Activate the venv above yourself (e.g. from a wrapper
+`sbatch` script that sources it before calling `srun`), or ask to have that
+support added back if you hit this in practice — it existed at one point
+and was removed for simplicity once the default container was confirmed
+sufficient, but the pattern is easy to restore if actually needed.
 
 ---
 

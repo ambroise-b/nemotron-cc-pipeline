@@ -13,6 +13,13 @@ bash scripts/submit_default/03_submit_quality_classification.sh
 bash scripts/submit_default/04_submit_sdg.sh
 ```
 
+`04b_submit_sdg_split.sh` is an alternative to `04` for stage 4: instead of
+one node's `--serve-model` local server, it splits the job into dedicated
+server nodes (a real multi-node vLLM deployment via Ray's `symmetric-run`)
+and dedicated compute nodes calling it over HTTP — see
+`scripts/run_sdg_split.sbatch` for the actual implementation and all the
+tunable config (node counts, model, vLLM flags, tasks to run).
+
 Each stage depends on the previous one's output — run them one at a time,
 check the output directory, then submit the next. All variables (SLURM
 resources, snapshot range, paths) are declared at the top of each file —
@@ -25,4 +32,6 @@ have every node corrupt the same shared output paths. See the comment in
 that submit script for why.
 
 `04` (SDG) is unverified end-to-end on this cluster (`vllm`/`--serve-model`
-— see `scripts/CSCS-QUICKSTART.md`).
+— see `scripts/CSCS-QUICKSTART.md`). `04b` (the split-node variant) is newer
+and entirely untested — it hasn't been run yet at all, so treat it as a
+first draft to try, not a validated path.

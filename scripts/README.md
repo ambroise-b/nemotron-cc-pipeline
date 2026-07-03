@@ -19,16 +19,14 @@ single-node allocation the scripts fall back to the default `RayClient`.
 It defaults to the container defined in
 [`container/container.toml`](../container/container.toml) — NVIDIA's own
 official `nemo-curator` image, which already ships a matched
-torch/RAPIDS/`nemo_curator` stack — and runs stage scripts directly against
-its system Python. No install step, nothing to sync.
+torch/RAPIDS/`nemo_curator` stack (confirmed live end-to-end) — and runs
+stage scripts directly against its system Python. No install step, nothing
+to sync.
 
-For a different container that doesn't already have `nemo-curator`
-installed, set `INSTALL_VENV=1`: this builds a disposable venv via
-`uv sync` in a job-scoped tmp directory under `$SCRATCH`, torn down on exit
-(set `KEEP_JOB_TMP_DIR=1` to keep it for debugging a failed job).
-`INSTALL_EXTRAS=sdg` also installs `vllm`. See the quickstart's
-"Background" section for why this project must use `uv sync`, never
-`uv pip install`.
+If you ever need a different container that doesn't already have
+`nemo-curator` installed, see the quickstart's "Background" section first —
+`nemo-curator`'s unpinned `torch` requirement is a real trap there (resolves
+to a broken CPU-only build unless you know the fix).
 
 Defaults target a single-node job on the `debug` partition under the
 `infra01` account, claiming a full GH200 node (288 CPUs, ~870GB RAM, 4

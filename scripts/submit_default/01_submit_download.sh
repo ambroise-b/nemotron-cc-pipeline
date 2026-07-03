@@ -33,13 +33,18 @@ TIME=04:00:00
 DATA_DIR="${SCRATCH}/nemotron-cc-data"
 START_SNAPSHOT=2024-46
 END_SNAPSHOT=2024-46
-URL_LIMIT=2
-RECORD_LIMIT=500
+# Leave URL_LIMIT/RECORD_LIMIT empty ("") for no limit (full-scale run) — the
+# underlying script takes plain ints and errors on the literal string "None",
+# so "no limit" means omitting the flag entirely, which the ${VAR:+...}
+# expansions below do automatically when the variable is empty.
+URL_LIMIT=300
+RECORD_LIMIT=""
 LANGUAGES=EN
 
 STEP_SCRIPT="src/nemotron-cc/step_1-download_extract.py"
 STEP_ARGS="--start-snapshot ${START_SNAPSHOT} --end-snapshot ${END_SNAPSHOT} \
---url-limit ${URL_LIMIT} --record-limit ${RECORD_LIMIT} --languages ${LANGUAGES} \
+${URL_LIMIT:+--url-limit ${URL_LIMIT}} ${RECORD_LIMIT:+--record-limit ${RECORD_LIMIT}} \
+--languages ${LANGUAGES} \
 --output-dir ${DATA_DIR}/cleaned_extracted --cache-dir ${DATA_DIR}/cache/step1"
 
 echo "Submitting stage 1 (download & extract): ${NODES} nodes, ${GPUS_PER_NODE} GPUs/node"
