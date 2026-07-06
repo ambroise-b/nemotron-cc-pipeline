@@ -1,3 +1,6 @@
 [submodule "modules/apply_robots_txt_filter"]
 	path = modules/apply_robots_txt_filter
 	url = https://github.com/swiss-ai/apply_robots_txt_filter.git
+[submodule "modules/create_robots_txt_filter_scalable"]
+	path = modules/create_robots_txt_filter_scalable
+	url = https://github.com/swiss-ai/create_robots_txt_filter_scalable.git
