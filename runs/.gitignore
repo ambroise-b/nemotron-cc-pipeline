@@ -1,0 +1,4 @@
+# Generated shard lists / manifests live here (one subdir per run name).
+# Keep the folder in git but ignore its generated contents.
+*
+!.gitignore

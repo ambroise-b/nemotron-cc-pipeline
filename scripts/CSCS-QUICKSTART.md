@@ -66,11 +66,51 @@ cd /users/aborbely/repos/nemotron_cc_pipeline
 DATA_DIR="$SCRATCH/nemotron-cc-data"
 set -a; source configs/sample.env; set +a   # START_SNAPSHOT, URL_LIMIT, etc.
 
-# Stage 1 — download & extract (CPU-only)
+# Stage 1 — extract (CPU-only). TWO options; both write the same JSONL layout
+# to $DATA_DIR/cleaned_extracted, so everything downstream is identical.
+#
+#   Option A — download + extract from Common Crawl by snapshot:
 python3 src/nemotron-cc/step_1-download_extract.py \
     --start-snapshot "$START_SNAPSHOT" --end-snapshot "$END_SNAPSHOT" \
     --url-limit "$URL_LIMIT" --record-limit "$RECORD_LIMIT" --languages "$LANGUAGES" \
     --output-dir "$DATA_DIR/cleaned_extracted" --cache-dir "$DATA_DIR/cache/step1"
+#
+#   Option B — extract from WARC files already on the cluster (no download).
+#   Uses the SAME JusText extractor, so output matches Option A byte-for-byte.
+#   Reads --warc-dir recursively; --file-limit keeps the sample small.
+#   WARC_DIR --> we only take part of it to actually test
+WARC_DIR="/capstor/store/cscs/swissai/infra01/kpitas/common-crawl-CC-MAIN-2026-21/data/crawl-data/CC-MAIN-2026-21/segments/1778213377585.61"
+python3 src/nemotron-cc/step_1-extract_local_warc.py \
+    --warc-dir "$WARC_DIR" --file-limit 2 --languages "$LANGUAGES" \
+    --output-dir "$DATA_DIR/cleaned_extracted" --cache-dir "$DATA_DIR/cache/step1"
+
+# Stage 1.5 — URL (robots.txt) + PII filtering (CPU-only, datatrove). This is
+# the SAME two-step flow the multi-node array uses (Part 2), run by hand on a
+# single shard so you can validate it interactively.
+#
+#   (a) prepare — split step 1's extracted JSONL into ~50 shard lists under
+#       runs/<RUN_NAME>/ (stdlib-only, runs right here; prints the shard count).
+#       Use a throwaway run name for this test. NOTE: with a tiny 2-WARC sample
+#       there are only a couple of .jsonl files, so most of the 50 shards will
+#       be empty and only shard_00000 (maybe a few) will have work — that's fine.
+PII_RUN=quickstart-test
+python3 src/url_pii_filter/prepare_dumps.py \
+    --input-dir "$DATA_DIR/cleaned_extracted" \
+    --name "$PII_RUN" --num-shards 50 --pattern '*.jsonl'
+#
+#   (b) filter ONE shard (shard_00000): reads only the files listed in that
+#       shard and writes a schema-identical, filtered replica. Removed docs go
+#       to a SEPARATE dir so they aren't re-read by stage 2. --output-name-prefix
+#       matches the array's flat-output convention. The robots domain list
+#       defaults to the create_robots_txt_filter_scalable submodule
+#       (override with --robots-list).
+python3 src/url_pii_filter/url_pii_filter.py \
+    --input-dir "$DATA_DIR/cleaned_extracted" \
+    --paths-file "runs/$PII_RUN/shard_00000.txt" \
+    --output-dir "$DATA_DIR/url_pii_filtered" \
+    --removed-dir "$DATA_DIR/url_pii_removed" \
+    --output-name-prefix shard_00000_ \
+    --tasks 4
 
 # Stage 2a — exact dedup (identify phase uses GPU). NOTE: the --remove
 # writer nests a copy of --output-dir's own basename inside itself — actual
@@ -78,7 +118,7 @@ python3 src/nemotron-cc/step_1-download_extract.py \
 # flat under "$DATA_DIR/exact_deduplicated/" — confirmed live. The next
 # stage's --input-dir below accounts for this.
 python3 src/nemotron-cc/step_2a-exact_dedup.py --identify --remove \
-    --input-dir "$DATA_DIR/cleaned_extracted" --cache-dir "$DATA_DIR/cache/exact_dedup" \
+    --input-dir "$DATA_DIR/url_pii_filtered" --cache-dir "$DATA_DIR/cache/exact_dedup" \
     --output-dir "$DATA_DIR/exact_deduplicated" --num-gpus 4
 
 # Stage 2b — fuzzy dedup. Same nesting caveat applies to its own
@@ -150,6 +190,33 @@ tail -f logs/nemotron_cc_<jobid>.log
 Swap `STEP_SCRIPT`/`STEP_ARGS` for any other stage the same way, following
 the Part 1 examples above (with the same `$SCRATCH/nemotron-cc-data` paths).
 Override the container with `CONTAINER_ENV=<path>` if needed.
+
+### Ready-made submit scripts
+
+`scripts/submit_default/` has pre-filled launchers (edit the variables at the
+top, then `bash` them from the repo root):
+
+- `01_submit_download.sh` — stage 1, **Option A** (download + extract by snapshot).
+- `01b_submit_extract_local_warc.sh` — stage 1, **Option B** (extract from local
+  WARC, no download). Pre-set to the CC-MAIN-2026-21 dump on `/capstor`, output
+  to `$SCRATCH`.
+- `02a_submit_exact_dedup.sh`, … — the later stages.
+
+**URL + PII filtering runs between stage 1 and stage 2.** It's a CPU-only
+datatrove job, so it goes through its own SLURM array (one task per shard)
+rather than `run_stage.sbatch`:
+
+```bash
+bash scripts/submit_url_pii_filter/submit_url_pii_filter.sh
+```
+
+It first runs a lightweight prepare step **on the login node** (a stdlib-only
+file-list + split — no SLURM job) that writes `NUM_SHARDS` shard lists under
+`runs/<RUN_NAME>/` and reports each shard's size, then submits a single array
+job (one task per shard) that filters each shard. All shards write into one
+flat `$SCRATCH/nemotron-cc-data/url_pii_filtered/<RUN_NAME>` (removed docs go to
+`.../url_pii_removed/<RUN_NAME>`). Point stage 2a's `--input-dir` at that
+filtered directory.
 
 ---
 
