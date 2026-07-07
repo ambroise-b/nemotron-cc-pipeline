@@ -19,15 +19,16 @@
 # CPU-only build), not something to casually improvise around.
 #
 # Prerequisites:
-#   - None — this repo (/users/aborbely/repos/nemotron_cc_pipeline) is on a
+#   - None — this repo (/users/${USER}/repos/nemotron_cc_pipeline) is on a
 #     shared filesystem already visible from every compute node, so it's
 #     run in place; nothing needs to be copied anywhere. Only the actual
 #     data being processed lives on $SCRATCH — see scripts/CSCS-QUICKSTART.md.
-#     Not repo-location-agnostic: REPO_DIR and --output/--error below are
-#     this repo's actual absolute path, not derived at runtime (sbatch
-#     copies scripts into a per-job spool file, so $0 isn't reliable here —
-#     see REPO_DIR's own comment). If this repo ever moves, update those
-#     three lines (or pass REPO_DIR= as an override).
+#     REPO_DIR defaults to /users/${USER}/repos/nemotron_cc_pipeline (per-user,
+#     not derived from $0 — sbatch spools the script so $0 isn't reliable).
+#     --output/--error use SLURM's %u (username) for an absolute per-user path,
+#     so logs land in the repo's logs/ regardless of submission cwd. Both assume
+#     the repo is at ~/repos/nemotron_cc_pipeline; if yours lives elsewhere, edit
+#     those lines and pass REPO_DIR= as an override.
 #
 # Usage:
 #   STEP_SCRIPT=src/nemotron-cc/step_1-download_extract.py \
@@ -60,8 +61,8 @@
 #SBATCH --exclusive
 #SBATCH --no-requeue
 #SBATCH --time=00:30:00
-#SBATCH --output=/users/aborbely/repos/nemotron_cc_pipeline/logs/nemotron_cc_%j.log
-#SBATCH --error=/users/aborbely/repos/nemotron_cc_pipeline/logs/nemotron_cc_%j.log
+#SBATCH --output=/users/%u/repos/nemotron_cc_pipeline/logs/nemotron_cc_%j.log
+#SBATCH --error=/users/%u/repos/nemotron_cc_pipeline/logs/nemotron_cc_%j.log
 
 set -euo pipefail
 
@@ -84,7 +85,7 @@ STEP_WORKDIR="${STEP_WORKDIR:-}"
 # Hardcoded rather than derived from $0: sbatch typically copies the script
 # into a per-job spool file before executing it, so $0 at runtime often
 # isn't this repo's path at all (a real, common sbatch footgun).
-REPO_DIR="${REPO_DIR:-/users/aborbely/repos/nemotron_cc_pipeline}"
+REPO_DIR="${REPO_DIR:-/users/${USER}/repos/nemotron_cc_pipeline}"
 
 # Shared directory for Ray port broadcast — must be visible to ALL nodes.
 # /tmp is typically node-local on HPC clusters, so use the shared filesystem.

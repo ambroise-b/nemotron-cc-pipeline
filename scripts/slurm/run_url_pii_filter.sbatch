@@ -25,8 +25,8 @@
 #SBATCH --exclusive
 #SBATCH --no-requeue
 #SBATCH --time=04:00:00
-#SBATCH --output=/users/aborbely/repos/nemotron_cc_pipeline/logs/url_pii_filter_%A_%a.log
-#SBATCH --error=/users/aborbely/repos/nemotron_cc_pipeline/logs/url_pii_filter_%A_%a.log
+#SBATCH --output=/users/%u/repos/nemotron_cc_pipeline/logs/url_pii_filter_%A_%a.log
+#SBATCH --error=/users/%u/repos/nemotron_cc_pipeline/logs/url_pii_filter_%A_%a.log
 
 set -euo pipefail
 
@@ -35,7 +35,7 @@ set -euo pipefail
 : "${OUTPUT_DIR:?Set OUTPUT_DIR}"
 : "${SLURM_ARRAY_TASK_ID:?This script must be run as a SLURM array job}"
 
-REPO_DIR="${REPO_DIR:-/users/aborbely/repos/nemotron_cc_pipeline}"
+REPO_DIR="${REPO_DIR:-/users/${USER}/repos/nemotron_cc_pipeline}"
 STEP_SCRIPT="src/url_pii_filter/url_pii_filter.py"
 
 ROBOTS_LIST="${ROBOTS_LIST:-}"           # empty => script uses its submodule default

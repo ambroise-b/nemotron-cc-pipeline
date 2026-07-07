@@ -47,12 +47,12 @@
 #SBATCH --no-requeue
 #SBATCH --time=00:30:00
 #SBATCH --signal=B:TERM@60
-#SBATCH --output=/users/aborbely/repos/nemotron_cc_pipeline/logs/nemotron_cc_sdg_split_%j.log
-#SBATCH --error=/users/aborbely/repos/nemotron_cc_pipeline/logs/nemotron_cc_sdg_split_%j.log
+#SBATCH --output=/users/%u/repos/nemotron_cc_pipeline/logs/nemotron_cc_sdg_split_%j.log
+#SBATCH --error=/users/%u/repos/nemotron_cc_pipeline/logs/nemotron_cc_sdg_split_%j.log
 
 set -euo pipefail
 
-REPO_DIR="/users/aborbely/repos/nemotron_cc_pipeline"
+REPO_DIR="/users/${USER}/repos/nemotron_cc_pipeline"
 : "${SCRATCH:?SCRATCH not set — expected on CSCS Clariden/Alps}"
 
 # --- Node split --------------------------------------------------------------

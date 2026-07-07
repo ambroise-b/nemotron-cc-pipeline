@@ -6,7 +6,7 @@ mounts = ["/capstor", "/iopsstor", "/users"]
 writable = true
 
 # The initial directory in the container.
-workdir = "/users/aborbely"
+workdir = "/users/${USER}"
 
 [annotations]
 com.hooks.aws_ofi_nccl.enabled = "true"

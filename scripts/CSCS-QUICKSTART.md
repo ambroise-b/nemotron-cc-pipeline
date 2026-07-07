@@ -11,7 +11,7 @@ URL+PII filtering stage (1.5) is a datatrove job and instead uses
 **Run every command in this doc yourself, inside your own interactive job.**
 None of it should be run from a login node.
 
-The repo itself lives at `/users/aborbely/repos/nemotron_cc_pipeline` and is
+The repo itself lives at `/users/$USER/repos/nemotron_cc_pipeline` and is
 already visible from every compute node (shared filesystem) — it's run in
 place, nothing gets copied anywhere. Only the actual data being processed
 lives on `$SCRATCH`.
@@ -22,6 +22,29 @@ step needed, unlike the generic containers this doc used to target (see
 "Background" below if you land on a different container and need that
 history). **This hasn't been verified live yet** — Part 0 below is exactly
 that verification, and it's cheap (no downloads, just imports).
+
+---
+
+## First-time setup — clone the repo
+
+Run in place from `~/repos/nemotron_cc_pipeline` (i.e. `/users/$USER/repos/...`).
+This step is the one exception to the "no login node" rule — it's just `git`,
+so do it on the login node. Clone **with submodules** (the robots.txt domain
+lists live in `modules/`):
+
+```bash
+mkdir -p ~/repos
+git clone --recurse-submodules \
+    https://github.com/ambroise-b/nemotron-cc-pipeline.git \
+    ~/repos/nemotron_cc_pipeline
+cd ~/repos/nemotron_cc_pipeline
+```
+
+Already cloned but `modules/` is empty? Pull the submodules in:
+
+```bash
+git submodule update --init --recursive
+```
 
 ---
 
@@ -41,7 +64,7 @@ Start an interactive job:
 
 ```bash
 srun -A infra01 -p debug --gpus-per-node=4 --time=00:30:00 \
-    --environment=/users/aborbely/repos/nemotron_cc_pipeline/container/container.toml \
+    --environment=/users/$USER/repos/nemotron_cc_pipeline/container/container.toml \
     --pty bash
 ```
 
@@ -66,7 +89,7 @@ Start an interactive job:
 
 ```bash
 srun -A infra01 -p debug --gpus-per-node=4 --time=00:30:00 \
-    --environment=/users/aborbely/repos/nemotron_cc_pipeline/container/datatrove.toml \
+    --environment=/users/$USER/repos/nemotron_cc_pipeline/container/datatrove.toml \
     --pty bash
 ```
 
@@ -96,7 +119,7 @@ so this isn't all one `--pty` session. Values below are inlined for a
 smoke-sized sample; edit them in place.
 
 ```bash
-cd /users/aborbely/repos/nemotron_cc_pipeline
+cd /users/$USER/repos/nemotron_cc_pipeline
 DATA_DIR="$SCRATCH/nemotron-cc-data"
 
 # ===== nemo-curator shell =====================================================
@@ -211,7 +234,7 @@ through `sbatch` (still your own submission, just not a `--pty` shell).
 scripts directly against its system Python — nothing to install:
 
 ```bash
-cd /users/aborbely/repos/nemotron_cc_pipeline
+cd /users/$USER/repos/nemotron_cc_pipeline
 
 STEP_SCRIPT=src/nemotron-cc/step_1-download_extract.py \
 STEP_ARGS="--start-snapshot 2024-46 --end-snapshot 2024-51 --output-dir $SCRATCH/nemotron-cc-data/cleaned_extracted --cache-dir $SCRATCH/nemotron-cc-data/cache/step1" \

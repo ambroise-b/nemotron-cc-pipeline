@@ -7,7 +7,7 @@ mounts = [
 ]
 writable = true
 
-workdir = "/users/aborbely"
+workdir = "/users/${USER}"
 
 [annotations]
 com.hooks.aws_ofi_nccl.enabled = "true"
