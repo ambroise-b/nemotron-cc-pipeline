@@ -18,8 +18,8 @@
 # =============================================================================
 set -euo pipefail
 
-if [[ ! -f scripts/run_url_pii_filter.sbatch ]]; then
-    echo "ERROR: run this from the project root (scripts/run_url_pii_filter.sbatch not found here)." >&2
+if [[ ! -f scripts/slurm/run_url_pii_filter.sbatch ]]; then
+    echo "ERROR: run this from the project root (scripts/slurm/run_url_pii_filter.sbatch not found here)." >&2
     exit 1
 fi
 : "${SCRATCH:?SCRATCH not set — expected on CSCS Clariden/Alps}"
@@ -88,6 +88,6 @@ ARRAY_JID=$(
         --array="${ARRAY_SPEC}" \
         --cpus-per-task="${CPUS_PER_TASK}" --mem="${MEM}" --time="${TIME}" \
         --exclusive --no-requeue \
-        scripts/run_url_pii_filter.sbatch
+        scripts/slurm/run_url_pii_filter.sbatch
 )
 echo "  array job:   ${ARRAY_JID} (array=${ARRAY_SPEC})"

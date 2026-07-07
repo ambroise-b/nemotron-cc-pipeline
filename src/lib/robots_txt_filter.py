@@ -8,7 +8,7 @@ This is independent of the current working directory and avoids polluting
 
 Usage
 -----
-    from scripts.lib.robots_txt_filter import PIIFormatter
+    from src.lib.robots_txt_filter import PIIFormatter
 
     formatter = PIIFormatter(remove_emails=True, remove_ips=True)
 
@@ -22,7 +22,7 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 
-# Repo root = two levels up from this file (scripts/lib/ -> scripts/ -> repo/).
+# Repo root = two levels up from this file (src/lib/ -> src/ -> repo/).
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 SUBMODULE_ROOT = _REPO_ROOT / "modules" / "apply_robots_txt_filter"
 _PII_FILE = SUBMODULE_ROOT / "pii_formatter_simple.py"
@@ -46,7 +46,7 @@ def _load_module():
 _pii_module = _load_module()
 
 # Re-export the public symbol so callers just do:
-#   from scripts.lib.robots_txt_filter import PIIFormatter
+#   from src.lib.robots_txt_filter import PIIFormatter
 PIIFormatter = _pii_module.PIIFormatter
 
 __all__ = ["PIIFormatter", "SUBMODULE_ROOT"]

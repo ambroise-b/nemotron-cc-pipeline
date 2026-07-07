@@ -33,7 +33,7 @@ Defaults target a single-node job on the `debug` partition under the
 GPUs — every node on this cluster has GPUs, confirmed via `scontrol show
 node`) since `--gpus-per-node=4` already makes it exclusively ours
 regardless. Override on the command line for other partitions, accounts,
-or node counts, e.g. `sbatch --partition=<other> scripts/run_stage.sbatch`.
+or node counts, e.g. `sbatch --partition=<other> scripts/slurm/run_stage.sbatch`.
 Set `CONTAINER_ENV=<path to a CSCS --environment= toml>` to use a different
 container.
 
@@ -47,7 +47,7 @@ full node each, so nothing else needs overriding:
 ```bash
 STEP_SCRIPT=src/nemotron-cc/step_1-download_extract.py \
 STEP_ARGS="--start-snapshot 2024-46 --end-snapshot 2024-51" \
-sbatch --nodes=4 --time=04:00:00 scripts/run_stage.sbatch
+sbatch --nodes=4 --time=04:00:00 scripts/slurm/run_stage.sbatch
 ```
 
 If `/tmp` is node-local on your cluster (the common case), `run_stage.sbatch`

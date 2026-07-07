@@ -1,10 +1,12 @@
 # CSCS Clariden/Alps quickstart
 
 Concrete, copy-paste command flow for this pipeline on CSCS's Clariden/Alps
-cluster, using the `infra01` account and the container defined in
-[`container/container.toml`](../container/container.toml) — NVIDIA's own
-official `nemo-curator` image
-(`nvidia+nemo-curator+26.04.sqsh`).
+cluster, using the `infra01` account. Most stages run in the
+[`container/container.toml`](../container/container.toml) container — NVIDIA's
+own official `nemo-curator` image (`nvidia+nemo-curator+26.04.sqsh`). The
+URL+PII filtering stage (1.5) is a datatrove job and instead uses
+[`container/datatrove.toml`](../container/datatrove.toml)
+(the `data-pipeline-pretrain` image); see Part 0.
 
 **Run every command in this doc yourself, inside your own interactive job.**
 None of it should be run from a login node.
@@ -23,7 +25,17 @@ that verification, and it's cheap (no downloads, just imports).
 
 ---
 
-## Part 0 — verify the container has what we need
+## Part 0 — verify the containers have what we need
+
+This pipeline uses **two** containers:
+
+- **nemo-curator** ([`container/container.toml`](../container/container.toml)) — for
+  every nemo_curator/Ray stage: extraction (stage 1) and stages 2–4.
+- **datatrove** ([`container/datatrove.toml`](../container/datatrove.toml),
+  the `data-pipeline-pretrain` image) — **only** for the URL+PII filtering
+  (stage 1.5), which is a datatrove job, not nemo_curator.
+
+### nemo-curator container
 
 Start an interactive job:
 
@@ -33,8 +45,8 @@ srun -A infra01 -p debug --gpus-per-node=4 --time=00:30:00 \
     --pty bash
 ```
 
-Inside that shell, check the pieces this pipeline needs, directly against
-the container's system Python — no venv, no install:
+Inside that shell, check the pieces the nemo_curator stages need, directly
+against the container's system Python — no venv, no install:
 
 ```bash
 python3 -c "import torch; print('torch', torch.__version__, 'cuda available:', torch.cuda.is_available(), torch.cuda.device_count(), 'GPU(s)')"
@@ -46,9 +58,29 @@ python3 -c "import vllm; print('vllm', vllm.__version__)"   # only needed for st
 ```
 
 Expect all of these to print cleanly, with `cuda.is_available()` returning
-`True` and device count `4`. If everything above works, **you're done with
-setup** — go straight to Part 1, running stage scripts with plain `python3`
-against the container's system install (no venv to activate).
+`True` and device count `4`.
+
+### datatrove container (stage 1.5 only)
+
+Start an interactive job:
+
+```bash
+srun -A infra01 -p debug --gpus-per-node=4 --time=00:30:00 \
+    --environment=/users/aborbely/repos/nemotron_cc_pipeline/container/datatrove.toml \
+    --pty bash
+```
+
+Inside it, check the datatrove pieces stage 1.5 needs:
+
+```bash
+python3 -c "import datatrove; print('datatrove', getattr(datatrove, '__version__', 'OK'))"
+python3 -c "from datatrove.pipeline.filters import URLFilter; from datatrove.pipeline.readers import JsonlReader; from datatrove.pipeline.writers import JsonlWriter; print('datatrove blocks OK')"
+python3 -c "import pandas; print('pandas', pandas.__version__)"
+```
+
+If everything above works, **you're done with setup** — go straight to Part 1,
+running stage scripts with plain `python3` against each container's system
+install (no venv to activate).
 
 If something's missing or `torch`/`cudf` look wrong, see "Fallback: this
 container doesn't have everything" below.
@@ -57,32 +89,39 @@ container doesn't have everything" below.
 
 ## Part 1 — single node, 4 GPU (small-sample validation)
 
-Reuse the same interactive job/shell from Part 0. Data reads/writes go
-under `$SCRATCH`; the repo runs in place from `/users/...`:
+Data reads/writes go under `$SCRATCH`; the repo runs in place from `/users/...`.
+**Mind the container:** run stages 1 and 2–4 in the **nemo-curator** shell from
+Part 0, and stage 1.5 in the **datatrove** shell — they're different containers,
+so this isn't all one `--pty` session. Values below are inlined for a
+smoke-sized sample; edit them in place.
 
 ```bash
 cd /users/aborbely/repos/nemotron_cc_pipeline
-
 DATA_DIR="$SCRATCH/nemotron-cc-data"
-set -a; source configs/sample.env; set +a   # START_SNAPSHOT, URL_LIMIT, etc.
+
+# ===== nemo-curator shell =====================================================
 
 # Stage 1 — extract (CPU-only). TWO options; both write the same JSONL layout
 # to $DATA_DIR/cleaned_extracted, so everything downstream is identical.
 #
 #   Option A — download + extract from Common Crawl by snapshot:
 python3 src/nemotron-cc/step_1-download_extract.py \
-    --start-snapshot "$START_SNAPSHOT" --end-snapshot "$END_SNAPSHOT" \
-    --url-limit "$URL_LIMIT" --record-limit "$RECORD_LIMIT" --languages "$LANGUAGES" \
+    --start-snapshot 2024-46 --end-snapshot 2024-46 \
+    --url-limit 2 --record-limit 500 --languages EN \
     --output-dir "$DATA_DIR/cleaned_extracted" --cache-dir "$DATA_DIR/cache/step1"
 #
 #   Option B — extract from WARC files already on the cluster (no download).
 #   Uses the SAME JusText extractor, so output matches Option A byte-for-byte.
 #   Reads --warc-dir recursively; --file-limit keeps the sample small.
-#   WARC_DIR --> we only take part of it to actually test
+#   WARC_DIR points at one segment only, to keep the test small.
 WARC_DIR="/capstor/store/cscs/swissai/infra01/kpitas/common-crawl-CC-MAIN-2026-21/data/crawl-data/CC-MAIN-2026-21/segments/1778213377585.61"
 python3 src/nemotron-cc/step_1-extract_local_warc.py \
-    --warc-dir "$WARC_DIR" --file-limit 2 --languages "$LANGUAGES" \
+    --warc-dir "$WARC_DIR" --file-limit 2 --languages EN \
     --output-dir "$DATA_DIR/cleaned_extracted" --cache-dir "$DATA_DIR/cache/step1"
+
+# ===== datatrove shell (stage 1.5) ============================================
+# Exit the nemo-curator shell and start the datatrove one (Part 0), then re-set
+# DATA_DIR there:  DATA_DIR="$SCRATCH/nemotron-cc-data"
 
 # Stage 1.5 — URL (robots.txt) + PII filtering (CPU-only, datatrove). This is
 # the SAME two-step flow the multi-node array uses (Part 2), run by hand on a
@@ -96,7 +135,7 @@ python3 src/nemotron-cc/step_1-extract_local_warc.py \
 PII_RUN=quickstart-test
 python3 src/url_pii_filter/prepare_dumps.py \
     --input-dir "$DATA_DIR/cleaned_extracted" \
-    --name "$PII_RUN" --num-shards 50 --pattern '*.jsonl'
+    --name "$PII_RUN" --num-shards 1 --pattern '*.jsonl'
 #
 #   (b) filter ONE shard (shard_00000): reads only the files listed in that
 #       shard and writes a schema-identical, filtered replica. Removed docs go
@@ -111,6 +150,9 @@ python3 src/url_pii_filter/url_pii_filter.py \
     --removed-dir "$DATA_DIR/url_pii_removed" \
     --output-name-prefix shard_00000_ \
     --tasks 4
+
+# ===== nemo-curator shell (stages 2–4) ========================================
+# Back in the nemo-curator shell (re-set DATA_DIR there too).
 
 # Stage 2a — exact dedup (identify phase uses GPU). NOTE: the --remove
 # writer nests a copy of --output-dir's own basename inside itself — actual
@@ -165,7 +207,7 @@ testing on a handful of records, not a bug.
 Interactive `--pty` only gives you one shell on one node, which doesn't fit
 `SlurmRayClient`'s one-process-per-node model — so multi-node runs go
 through `sbatch` (still your own submission, just not a `--pty` shell).
-`scripts/run_stage.sbatch` defaults to this same container and runs stage
+`scripts/slurm/run_stage.sbatch` defaults to this same container and runs stage
 scripts directly against its system Python — nothing to install:
 
 ```bash
@@ -174,10 +216,10 @@ cd /users/aborbely/repos/nemotron_cc_pipeline
 STEP_SCRIPT=src/nemotron-cc/step_1-download_extract.py \
 STEP_ARGS="--start-snapshot 2024-46 --end-snapshot 2024-51 --output-dir $SCRATCH/nemotron-cc-data/cleaned_extracted --cache-dir $SCRATCH/nemotron-cc-data/cache/step1" \
 sbatch -A infra01 -p normal --nodes=2 --gpus-per-node=4 --time=02:00:00 \
-    scripts/run_stage.sbatch
+    scripts/slurm/run_stage.sbatch
 ```
 
-`scripts/run_stage.sbatch` detects `--nodes > 1` and automatically adds
+`scripts/slurm/run_stage.sbatch` detects `--nodes > 1` and automatically adds
 `--slurm` to the target script's CLI, switching it to `SlurmRayClient` so
 all allocated nodes join one Ray cluster (node 0 = head, runs the pipeline;
 the rest block as workers). Logs land in `logs/nemotron_cc_<jobid>.log` in
@@ -204,7 +246,9 @@ top, then `bash` them from the repo root):
 
 **URL + PII filtering runs between stage 1 and stage 2.** It's a CPU-only
 datatrove job, so it goes through its own SLURM array (one task per shard)
-rather than `run_stage.sbatch`:
+rather than `run_stage.sbatch`, and its array job runs in the **datatrove**
+container (`container/datatrove.toml`) automatically — no need to set
+`CONTAINER_ENV`:
 
 ```bash
 bash scripts/submit_url_pii_filter/submit_url_pii_filter.sh

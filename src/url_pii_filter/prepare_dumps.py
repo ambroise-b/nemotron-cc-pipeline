@@ -8,7 +8,7 @@ expects.
 
 The SLURM array then launches one task per shard: array task i reads
 runs/<name>/shard_<i>.txt and processes only those files (see
-url_pii_filter.py and scripts/run_url_pii_filter.sbatch).
+url_pii_filter.py and scripts/slurm/run_url_pii_filter.sbatch).
 
 This runs once, inside the submit job, before the array fans out. It depends
 only on the Python standard library (no datatrove / fsspec / loguru), so it

@@ -38,7 +38,7 @@ from pathlib import Path
 
 from loguru import logger
 
-# Make the repo root importable so `scripts.lib` (which vendors PIIFormatter
+# Make the repo root importable so `src.lib` (which vendors PIIFormatter
 # from the submodule) resolves regardless of the working directory we launch
 # from. Repo root = three levels up: src/url_pii_filter/<file> -> repo/.
 _REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -51,7 +51,7 @@ from datatrove.pipeline.filters import URLFilter  # noqa: E402
 from datatrove.pipeline.readers import JsonlReader, ParquetReader  # noqa: E402
 from datatrove.pipeline.writers import JsonlWriter, ParquetWriter  # noqa: E402
 
-from scripts.lib.robots_txt_filter import PIIFormatter  # noqa: E402
+from src.lib.robots_txt_filter import PIIFormatter  # noqa: E402
 
 # Default robots.txt domain exclusion list, vendored in the
 # create_robots_txt_filter_scalable submodule. Used if --robots-list is omitted.

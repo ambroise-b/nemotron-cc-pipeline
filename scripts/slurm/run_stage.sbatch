@@ -32,10 +32,10 @@
 # Usage:
 #   STEP_SCRIPT=src/nemotron-cc/step_1-download_extract.py \
 #   STEP_ARGS="--start-snapshot 2024-46 --end-snapshot 2024-46 --url-limit 2" \
-#   sbatch scripts/run_stage.sbatch
+#   sbatch scripts/slurm/run_stage.sbatch
 #
 # Override resources without editing this file:
-#   sbatch --nodes=4 --time=02:00:00 scripts/run_stage.sbatch
+#   sbatch --nodes=4 --time=02:00:00 scripts/slurm/run_stage.sbatch
 #
 # Defaults below target a single-node run on the "debug" partition under the
 # "infra01" account, claiming a full GH200 node (288 CPUs, ~870GB RAM, 4

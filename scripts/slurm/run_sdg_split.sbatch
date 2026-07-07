@@ -25,11 +25,11 @@
 #
 # This lives in scripts/ rather than scripts/submit_default/ because it IS
 # the sbatch script (its own #SBATCH directives, its own srun/vllm calls)
-# rather than a thin wrapper that submits scripts/run_stage.sbatch, unlike
+# rather than a thin wrapper that submits scripts/slurm/run_stage.sbatch, unlike
 # everything under submit_default/.
 #
 # Run from the project root:
-#   sbatch scripts/run_sdg_split.sbatch
+#   sbatch scripts/slurm/run_sdg_split.sbatch
 #
 # All the values you're likely to want to change live in the block below —
 # edit those, not the srun/ray/vllm calls themselves.

@@ -1,0 +1,18 @@
+image = "/capstor/store/cscs/swissai/infra01/containers/data-pipeline-pretrain/data-pipeline-pretrain-v1.5.sqsh"
+mounts = [
+    "/users/${USER}/",
+    "/capstor/scratch/cscs/",
+    "/iopsstor/scratch/cscs/",
+    "/capstor/store/cscs/swissai/",
+]
+writable = true
+
+workdir = "/users/aborbely"
+
+[annotations]
+com.hooks.aws_ofi_nccl.enabled = "true"
+com.hooks.aws_ofi_nccl.variant = "cuda12"
+
+[env]
+SSL_CERT_FILE=""
+NCCL_NET=""

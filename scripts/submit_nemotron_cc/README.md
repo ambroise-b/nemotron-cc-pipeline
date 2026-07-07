@@ -17,7 +17,7 @@ bash scripts/submit_default/04_submit_sdg.sh
 one node's `--serve-model` local server, it splits the job into dedicated
 server nodes (a real multi-node vLLM deployment via Ray's `symmetric-run`)
 and dedicated compute nodes calling it over HTTP — see
-`scripts/run_sdg_split.sbatch` for the actual implementation and all the
+`scripts/slurm/run_sdg_split.sbatch` for the actual implementation and all the
 tunable config (node counts, model, vLLM flags, tasks to run).
 
 Each stage depends on the previous one's output — run them one at a time,
@@ -26,7 +26,7 @@ resources, snapshot range, paths) are declared at the top of each file —
 edit those, not the `sbatch` call itself.
 
 `02c` (substring dedup) requests 4 nodes like the others for consistency,
-but `scripts/run_stage.sbatch` deliberately runs it on only 1 of them —
+but `scripts/slurm/run_stage.sbatch` deliberately runs it on only 1 of them —
 that script has no multi-node support, and running one copy per node would
 have every node corrupt the same shared output paths. See the comment in
 that submit script for why.

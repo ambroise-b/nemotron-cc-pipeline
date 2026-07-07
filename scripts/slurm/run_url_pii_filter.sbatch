@@ -57,7 +57,9 @@ if [[ ! -f "${PATHS_FILE}" ]]; then
     exit 1
 fi
 
-CONTAINER_ENV="${CONTAINER_ENV:-${REPO_DIR}/container/container.toml}"
+# URL+PII filtering runs on datatrove, NOT the nemo-curator image — it uses a
+# different container (data-pipeline-pretrain, which ships datatrove).
+CONTAINER_ENV="${CONTAINER_ENV:-${REPO_DIR}/container/datatrove.toml}"
 CONTAINER_FLAGS=(--environment="${CONTAINER_ENV}" --container-writable)
 RUN_PYTHON="python3"
 

@@ -10,8 +10,8 @@
 # =============================================================================
 set -euo pipefail
 
-if [[ ! -f scripts/run_stage.sbatch ]]; then
-    echo "ERROR: run this from the project root (scripts/run_stage.sbatch not found here)." >&2
+if [[ ! -f scripts/slurm/run_stage.sbatch ]]; then
+    echo "ERROR: run this from the project root (scripts/slurm/run_stage.sbatch not found here)." >&2
     exit 1
 fi
 : "${SCRATCH:?SCRATCH not set — expected on CSCS Clariden/Alps}"
@@ -43,4 +43,4 @@ sbatch -A "${ACCOUNT}" -p "${PARTITION}" \
     --nodes="${NODES}" --gpus-per-node="${GPUS_PER_NODE}" \
     --cpus-per-task="${CPUS_PER_TASK}" --mem="${MEM}" --time="${TIME}" \
     --exclusive --no-requeue \
-    scripts/run_stage.sbatch
+    scripts/slurm/run_stage.sbatch

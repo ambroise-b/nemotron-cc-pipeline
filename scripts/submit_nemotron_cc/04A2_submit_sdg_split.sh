@@ -9,16 +9,16 @@
 #
 # Alternative to 04_submit_sdg.sh (single-node --serve-model, limited to
 # whatever fits on one node). All the actual config (node counts, model,
-# vLLM flags, tasks) lives in scripts/run_sdg_split.sbatch itself — this is
+# vLLM flags, tasks) lives in scripts/slurm/run_sdg_split.sbatch itself — this is
 # just a thin, consistently-located pointer to it; edit that file, not this
 # one, to change resources/model/etc.
 # =============================================================================
 set -euo pipefail
 
-if [[ ! -f scripts/run_sdg_split.sbatch ]]; then
-    echo "ERROR: run this from the project root (scripts/run_sdg_split.sbatch not found here)." >&2
+if [[ ! -f scripts/slurm/run_sdg_split.sbatch ]]; then
+    echo "ERROR: run this from the project root (scripts/slurm/run_sdg_split.sbatch not found here)." >&2
     exit 1
 fi
 
-echo "Submitting stage 4, split-node design (see scripts/run_sdg_split.sbatch for config)"
-sbatch scripts/run_sdg_split.sbatch
+echo "Submitting stage 4, split-node design (see scripts/slurm/run_sdg_split.sbatch for config)"
+sbatch scripts/slurm/run_sdg_split.sbatch
