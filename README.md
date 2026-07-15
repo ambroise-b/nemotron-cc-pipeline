@@ -58,7 +58,7 @@ addition; stage 2c is **optional**.
 | **1.5** | **Apertus step:** drop documents whose domain is on the robots.txt exclusion list, redact emails / IPs / IBANs. Sharded SLURM array | [`submit_url_pii_filter/submit_url_pii_filter.sh`](scripts/submit_url_pii_filter/submit_url_pii_filter.sh) |
 | 2a | Hash-based exact deduplication | [`submit_nemotron_cc/02a_submit_exact_dedup.sh`](scripts/submit_nemotron_cc/02a_submit_exact_dedup.sh) |
 | 2b | MinHash + LSH fuzzy deduplication | [`submit_nemotron_cc/02b_submit_fuzzy_dedup.sh`](scripts/submit_nemotron_cc/02b_submit_fuzzy_dedup.sh) |
-| 2c | Suffix-array exact substring dedup — **optional** (needs a Rust toolchain) | [`submit_nemotron_cc/02c_submit_substring_dedup.sh`](scripts/submit_nemotron_cc/02c_submit_substring_dedup.sh) |
+| 2c | Suffix-array exact substring dedup — **optional** (needs a Rust toolchain, don't work multi-nodes) | [`submit_nemotron_cc/02c_submit_substring_dedup.sh`](scripts/submit_nemotron_cc/02c_submit_substring_dedup.sh) |
 | 3 | Ensemble quality classifiers → 0–19 buckets | [`submit_nemotron_cc/03_submit_quality_classification.sh`](scripts/submit_nemotron_cc/03_submit_quality_classification.sh) |
 | 4 | LLM synthetic data generation on the top buckets | [`submit_nemotron_cc/04A1_submit_sdg.sh`](scripts/submit_nemotron_cc/04A1_submit_sdg.sh) (or [`04A2_submit_sdg_split.sh`](scripts/submit_nemotron_cc/04A2_submit_sdg_split.sh) for the split-node design) |
 

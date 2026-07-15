@@ -23,19 +23,36 @@ fi
 # getting whatever Slurm's default per-CPU memory ratio happens to grant.
 ACCOUNT=infra01
 PARTITION=normal
-NODES=4
+NODES=50
 GPUS_PER_NODE=4
 CPUS_PER_TASK=288
 MEM=850000   # MB; a little under the node's 870000 to leave OS/slurmd headroom
 TIME=04:00:00
 
+# --- SLURM reservation (optional) --------------------------------------------
+# When RESERVATION is non-empty, --reservation=<RESERVATION> is appended to the
+# sbatch call below; when it's "", the flag is omitted entirely and Slurm
+# schedules normally. Comment/uncomment to switch pools or disable it quickly.
+RESERVATION="SD-69241-apertus-1-5-0"
+#RESERVATION=""
+
 # --- Stage 3 args ------------------------------------------------------------
-DATA_DIR="${SCRATCH}/nemotron-cc-data"
+#DATA_DIR="${SCRATCH}/nemotron-cc-data"
+DATA_DIR="${SCRATCH}/nemotron-cc-pipeline-CC-MAIN-2026-21"
+
+#TODO change back to the original input dir
 
 STEP_SCRIPT="src/nemotron-cc/step_3-quality_classification.py"
 # --num-gpus/--num-cpus intentionally omitted — see 02a's comment.
+# here we also skip substring dedup : input dir would be ${DATA_DIR}/substring_deduplicated otherwise
+#
+# TEMP: reading the RESHARDED fuzzy-dedup output (files <=480MB) instead of the
+# raw fuzzy_deduplicated dir, whose 2.5GB files OOM'd the classifier actors.
+# Revert to the commented line once resharding moves upstream (after the URL/PII
+# filter). Run 01c_submit_reshard.sh first to produce this directory.
+# ORIGINAL: --input-dir ${DATA_DIR}/fuzzy_deduplicated/fuzzy_deduplicated/
 STEP_ARGS="--classify --ensemble \
---input-dir ${DATA_DIR}/substring_deduplicated --output-dir ${DATA_DIR}/quality_labeling"
+--input-dir ${DATA_DIR}/fuzzy_deduplicated_resharded/ --output-dir ${DATA_DIR}/quality_labeling"
 
 echo "Submitting stage 3 (quality classification): ${NODES} nodes, ${GPUS_PER_NODE} GPUs/node"
 STEP_SCRIPT="${STEP_SCRIPT}" STEP_ARGS="${STEP_ARGS}" \
@@ -43,4 +60,5 @@ sbatch -A "${ACCOUNT}" -p "${PARTITION}" \
     --nodes="${NODES}" --gpus-per-node="${GPUS_PER_NODE}" \
     --cpus-per-task="${CPUS_PER_TASK}" --mem="${MEM}" --time="${TIME}" \
     --exclusive --no-requeue \
+    ${RESERVATION:+--reservation="${RESERVATION}"} \
     scripts/slurm/run_stage.sbatch

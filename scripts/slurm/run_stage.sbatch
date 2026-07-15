@@ -102,6 +102,12 @@ CONTAINER_FLAGS=(--environment="${CONTAINER_ENV}" --container-writable)
 # /users (small home quota, already hit once this project).
 export HF_HOME="${HF_HOME:-${SCRATCH:-${REPO_DIR}}/nemotron-cc-hf-cache}"
 
+# Fully-offline HF: models are pre-cached in $HF_HUB_CACHE and compute nodes
+# lack reliable internet. Avoids NeMo Curator's per-node snapshot_download
+# network call that flakes at ~50-node scale. Set =0 to restore online.
+export HF_HUB_OFFLINE="${HF_HUB_OFFLINE:-1}"
+export TRANSFORMERS_OFFLINE="${TRANSFORMERS_OFFLINE:-1}"
+
 RUN_PYTHON="python3"
 
 echo "=================================================="
@@ -151,6 +157,9 @@ cd '${RUN_DIR}'
 export RAY_TMPDIR=/tmp/ray_\${SLURM_JOB_ID}
 export RAY_PORT_BROADCAST_DIR='${REPO_DIR}/logs'
 export HF_HOME='${HF_HOME:-}'
+export HF_HUB_CACHE='${HF_HUB_CACHE:-}'
+export HF_HUB_OFFLINE='${HF_HUB_OFFLINE:-1}'
+export TRANSFORMERS_OFFLINE='${TRANSFORMERS_OFFLINE:-1}'
 echo \"[\$(hostname)] SLURM_NODEID=\${SLURM_NODEID} python=\$(${RUN_PYTHON} --version 2>&1)\"
 nvidia-smi --query-gpu=index,name,memory.total --format=csv,noheader 2>/dev/null \
     | sed \"s/^/  [\$(hostname)] GPU /\" || echo \"  [\$(hostname)] no GPUs\"

@@ -29,6 +29,13 @@ CPUS_PER_TASK=288
 MEM=850000   # MB; a little under the node's 870000 to leave OS/slurmd headroom
 TIME=04:00:00
 
+# --- SLURM reservation (optional) --------------------------------------------
+# When RESERVATION is non-empty, --reservation=<RESERVATION> is appended to the
+# sbatch call below; when it's "", the flag is omitted entirely and Slurm
+# schedules normally. Comment/uncomment to switch pools or disable it quickly.
+RESERVATION="SD-69241-apertus-1-5-0"
+#RESERVATION=""
+
 # --- Stage 1 args ------------------------------------------------------------
 DATA_DIR="${SCRATCH}/nemotron-cc-data"
 START_SNAPSHOT=2024-46
@@ -39,12 +46,16 @@ END_SNAPSHOT=2024-46
 # expansions below do automatically when the variable is empty.
 URL_LIMIT=300
 RECORD_LIMIT=""
-LANGUAGES=EN
+# Space-separated language codes to keep (e.g. "EN" or "EN DE FR").
+# Leave EMPTY to keep ALL languages: the --languages flag is then omitted (via
+# the ${LANGUAGES:+...} expansion), so no language filtering is applied —
+# language-ID still runs and is recorded.
+LANGUAGES=""
 
 STEP_SCRIPT="src/nemotron-cc/step_1-download_extract.py"
 STEP_ARGS="--start-snapshot ${START_SNAPSHOT} --end-snapshot ${END_SNAPSHOT} \
 ${URL_LIMIT:+--url-limit ${URL_LIMIT}} ${RECORD_LIMIT:+--record-limit ${RECORD_LIMIT}} \
---languages ${LANGUAGES} \
+${LANGUAGES:+--languages ${LANGUAGES}} \
 --output-dir ${DATA_DIR}/cleaned_extracted --cache-dir ${DATA_DIR}/cache/step1"
 
 echo "Submitting stage 1 (download & extract): ${NODES} nodes, ${GPUS_PER_NODE} GPUs/node"
@@ -53,4 +64,5 @@ sbatch -A "${ACCOUNT}" -p "${PARTITION}" \
     --nodes="${NODES}" --gpus-per-node="${GPUS_PER_NODE}" \
     --cpus-per-task="${CPUS_PER_TASK}" --mem="${MEM}" --time="${TIME}" \
     --exclusive --no-requeue \
+    ${RESERVATION:+--reservation="${RESERVATION}"} \
     scripts/slurm/run_stage.sbatch

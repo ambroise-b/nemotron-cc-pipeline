@@ -110,6 +110,54 @@ container doesn't have everything" below.
 
 ---
 
+## Part 0.5 — warm the HuggingFace cache (run once, before multi-node)
+
+The stage launchers run **fully offline** for HuggingFace by default:
+`scripts/slurm/run_stage.sbatch` (and `run_sdg_split.sbatch`) export
+`HF_HUB_OFFLINE=1` / `TRANSFORMERS_OFFLINE=1`. This is deliberate — NeMo
+Curator's `TokenizerStage.setup_on_node()` otherwise calls
+`snapshot_download(local_files_only=False)` **once per node**, an
+unconditional round-trip to `huggingface.co` that flakes at ~50-node scale
+(`OSError: couldn't connect ... and couldn't find them in the cached files`)
+and aborts the whole stage — even when the models are already cached. Offline
+reads come straight from the shared cache with zero HTTP, so the failure
+disappears.
+
+The catch: offline mode only works if the cache is already populated. Warm it
+once (online, one node, inside the container) with:
+
+```bash
+cd /users/$USER/repos/nemotron_cc_pipeline
+bash scripts/submit_init/00_submit_warm_hf_cache.sh          # classifiers + Qwen
+# INCLUDE_QWEN=0 bash scripts/submit_init/00_submit_warm_hf_cache.sh   # skip the ~60GB Qwen
+tail -f logs/warm_hf_cache_<jobid>.log
+```
+
+This downloads everything the offline stages need into `$HF_HUB_CACHE`:
+
+| Stage | Repo |
+| --- | --- |
+| 3 (classify) | `nvidia/nemocurator-fineweb-mixtral-edu-classifier` |
+| 3 (classify) | `nvidia/nemocurator-fineweb-nemotron-4-edu-classifier` |
+| 3 (classify) | `mlfoundations/fasttext-oh-eli5` |
+| 4 (SDG)       | `Qwen/Qwen3-30B-A3B-Instruct-2507` |
+
+It's idempotent — already-present repos are skipped, so re-running is cheap.
+
+Notes:
+- `$HF_HUB_CACHE` (on CSCS, typically `/capstor/.../hf_models`) is what
+  actually governs where models land — **not** `$HF_HOME`. If your login
+  environment doesn't set it, do so before submitting so the warm-up and the
+  stages agree on one location.
+- Stage 1's language-ID model (`lid.176.bin`) is a **separate, non-HF**
+  download from `dl.fbaipublicfiles.com`, fetched by stage 1 itself and cached
+  by path — it is unaffected by `HF_HUB_OFFLINE` and not part of this warm-up.
+  Stage 1 needs the network anyway (it downloads Common Crawl).
+- To run a stage online instead (e.g. to pull a model you haven't cached),
+  override per-submission: `HF_HUB_OFFLINE=0 TRANSFORMERS_OFFLINE=0 bash scripts/submit_nemotron_cc/03_...`.
+
+---
+
 ## Part 1 — single node, 4 GPU (small-sample validation)
 
 Data reads/writes go under `$SCRATCH`; the repo runs in place from `/users/...`.

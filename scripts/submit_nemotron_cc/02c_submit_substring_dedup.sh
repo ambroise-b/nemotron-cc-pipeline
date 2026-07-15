@@ -40,6 +40,13 @@ CPUS_PER_TASK=288
 MEM=850000   # MB; a little under the node's 870000 to leave OS/slurmd headroom
 TIME=04:00:00
 
+# --- SLURM reservation (optional) --------------------------------------------
+# When RESERVATION is non-empty, --reservation=<RESERVATION> is appended to the
+# sbatch call below; when it's "", the flag is omitted entirely and Slurm
+# schedules normally. Comment/uncomment to switch pools or disable it quickly.
+RESERVATION="SD-69241-apertus-1-5-0"
+#RESERVATION=""
+
 # --- Stage 2c args (env vars, not CLI args) ----------------------------------
 DATA_DIR="${SCRATCH}/nemotron-cc-data"
 
@@ -63,4 +70,5 @@ sbatch -A "${ACCOUNT}" -p "${PARTITION}" \
     --nodes="${NODES}" --gpus-per-node="${GPUS_PER_NODE}" \
     --cpus-per-task="${CPUS_PER_TASK}" --mem="${MEM}" --time="${TIME}" \
     --exclusive --no-requeue \
+    ${RESERVATION:+--reservation="${RESERVATION}"} \
     scripts/slurm/run_stage.sbatch

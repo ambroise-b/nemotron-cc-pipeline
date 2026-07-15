@@ -1,4 +1,6 @@
-image = "/capstor/store/cscs/swissai/infra01/container-images/nvidia+nemo-curator+26.04.sqsh"
+image = "/iopsstor/scratch/cscs/aborbely/images/nemo-curator-26.04-gz.sqsh"
+#image = "/iopsstor/scratch/cscs/aborbely/images/nvidia+nemo-curator+26.04.sqsh"
+#image = "/capstor/store/cscs/swissai/infra01/container-images/nvidia+nemo-curator+26.04.sqsh"
 
 # "src_path:trg_path" mounts the src_path on the host inside the container at the trg_path.
 mounts = ["/capstor", "/iopsstor", "/users"]

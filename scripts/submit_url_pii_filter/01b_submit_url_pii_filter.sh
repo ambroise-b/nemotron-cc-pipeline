@@ -25,15 +25,16 @@ fi
 : "${SCRATCH:?SCRATCH not set — expected on CSCS Clariden/Alps}"
 
 # --- Run identity ------------------------------------------------------------
-RUN_NAME="CC-MAIN-2026-21"     # shard lists go to runs/<RUN_NAME>/
+RUN_NAME="CC-MAIN-2026-21_all"     # shard lists go to runs/<RUN_NAME>/
 NUM_SHARDS=100                 # number of shards == number of array tasks
-MAX_PARALLEL=10                # max array tasks running at once (SLURM '%' cap);
+MAX_PARALLEL=25                # max array tasks running at once (SLURM '%' cap);
                                # empty = no cap (scheduler/QOS decides)
 
 # --- Paths (everything under $SCRATCH) ---------------------------------------
 # INPUT_DIR is step_1-extract_local_warc.py's extracted JSONL output.
 # The filtered output is a schema-identical drop-in for step_2a to consume.
-DATA_DIR="${SCRATCH}/nemotron-cc-data"
+#DATA_DIR="${SCRATCH}/nemotron-cc-data"
+DATA_DIR="${SCRATCH}/nemotron-cc-pipeline-CC-MAIN-2026-21"
 INPUT_DIR="${DATA_DIR}/extracted/${RUN_NAME}"          # step_1 extracted JSONL (dump root)
 OUTPUT_DIR="${DATA_DIR}/url_pii_filtered/${RUN_NAME}"  # kept docs (flat, shard-prefixed files)
 REMOVED_DIR="${DATA_DIR}/url_pii_removed/${RUN_NAME}"  # robots-excluded docs (separate tree)
@@ -47,7 +48,7 @@ ROBOTS_LIST=""
 PATTERN='*.jsonl'              # step_1's JsonlWriter emits plain .jsonl files
 OUTPUT_FILETYPE=jsonl          # keep 'jsonl' to replicate step_1's output
 COMPRESSION=none               # 'none' = plain .jsonl, matching step_1's JsonlWriter
-TASKS=32                       # datatrove tasks per shard (intra-node parallelism)
+TASKS=20                       # datatrove tasks per shard (intra-node parallelism)
 WORKERS=-1                     # -1 => workers == tasks
 
 # --- SLURM resources ---------------------------------------------------------
@@ -56,6 +57,13 @@ PARTITION=normal
 CPUS_PER_TASK=288
 MEM=850000
 TIME=04:00:00
+
+# --- SLURM reservation (optional) --------------------------------------------
+# When RESERVATION is non-empty, --reservation=<RESERVATION> is appended to the
+# sbatch call below; when it's "", the flag is omitted entirely and Slurm
+# schedules normally. Comment/uncomment to switch pools or disable it quickly.
+RESERVATION="SD-69241-apertus-1-5-0"
+#RESERVATION=""
 
 echo "Submitting URL + PII filter run '${RUN_NAME}'"
 echo "  input:  ${INPUT_DIR}"
@@ -88,6 +96,7 @@ ARRAY_JID=$(
         --array="${ARRAY_SPEC}" \
         --cpus-per-task="${CPUS_PER_TASK}" --mem="${MEM}" --time="${TIME}" \
         --exclusive --no-requeue \
+        ${RESERVATION:+--reservation="${RESERVATION}"} \
         scripts/slurm/run_url_pii_filter.sbatch
 )
 echo "  array job:   ${ARRAY_JID} (array=${ARRAY_SPEC})"

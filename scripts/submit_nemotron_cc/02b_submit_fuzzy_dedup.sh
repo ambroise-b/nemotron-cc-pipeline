@@ -22,14 +22,22 @@ fi
 # getting whatever Slurm's default per-CPU memory ratio happens to grant.
 ACCOUNT=infra01
 PARTITION=normal
-NODES=4
+NODES=20
 GPUS_PER_NODE=4
 CPUS_PER_TASK=288
 MEM=850000   # MB; a little under the node's 870000 to leave OS/slurmd headroom
 TIME=04:00:00
 
+# --- SLURM reservation (optional) --------------------------------------------
+# When RESERVATION is non-empty, --reservation=<RESERVATION> is appended to the
+# sbatch call below; when it's "", the flag is omitted entirely and Slurm
+# schedules normally. Comment/uncomment to switch pools or disable it quickly.
+RESERVATION="SD-69241-apertus-1-5-0"
+#RESERVATION=""
+
 # --- Stage 2b args -----------------------------------------------------------
-DATA_DIR="${SCRATCH}/nemotron-cc-data"
+#DATA_DIR="${SCRATCH}/nemotron-cc-data"
+DATA_DIR="${SCRATCH}/nemotron-cc-pipeline-CC-MAIN-2026-21"
 
 STEP_SCRIPT="src/nemotron-cc/step_2b-fuzzy_dedup.py"
 # --num-gpus/--num-cpus intentionally omitted — see 02a's comment.
@@ -48,4 +56,5 @@ sbatch -A "${ACCOUNT}" -p "${PARTITION}" \
     --nodes="${NODES}" --gpus-per-node="${GPUS_PER_NODE}" \
     --cpus-per-task="${CPUS_PER_TASK}" --mem="${MEM}" --time="${TIME}" \
     --exclusive --no-requeue \
+    ${RESERVATION:+--reservation="${RESERVATION}"} \
     scripts/slurm/run_stage.sbatch

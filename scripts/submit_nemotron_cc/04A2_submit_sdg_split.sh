@@ -20,5 +20,13 @@ if [[ ! -f scripts/slurm/run_sdg_split.sbatch ]]; then
     exit 1
 fi
 
+# --- SLURM reservation (optional) --------------------------------------------
+# When RESERVATION is non-empty, --reservation=<RESERVATION> is appended to the
+# sbatch call below; when it's "", the flag is omitted entirely and Slurm
+# schedules normally. Comment/uncomment to switch pools or disable it quickly.
+# (All other resources live in scripts/slurm/run_sdg_split.sbatch.)
+RESERVATION="SD-69241-apertus-1-5-0"
+#RESERVATION=""
+
 echo "Submitting stage 4, split-node design (see scripts/slurm/run_sdg_split.sbatch for config)"
-sbatch scripts/slurm/run_sdg_split.sbatch
+sbatch ${RESERVATION:+--reservation="${RESERVATION}"} scripts/slurm/run_sdg_split.sbatch
