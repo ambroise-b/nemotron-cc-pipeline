@@ -82,8 +82,10 @@ See README.md in this directory for detailed usage instructions.
 """
 
 import argparse
+import glob
 import json
 import os
+import sys
 import time
 
 from loguru import logger
@@ -396,6 +398,9 @@ def build_pipeline(
     input_dir: str,
     output_dir: str,
     output_format: str,
+    num_shards: int = 1,
+    shard_id: int = 0,
+    use_streaming_chunker: bool = False,
 ) -> Pipeline:
     """Build a complete SDG pipeline for one task."""
     task_config = TASK_CONFIGS[task_name]
@@ -416,9 +421,31 @@ def build_pipeline(
         msg = f"No bucket directories found in {input_dir} for buckets {HIGH_QUALITY_BUCKETS}"
         raise FileNotFoundError(msg)
 
+    # Optional sharding for independent-job arrays: each shard reads a disjoint,
+    # size-balanced slice of the parquet files (strided so every shard mixes
+    # buckets and file sizes). This is input SELECTION only — the processing
+    # stages below are unchanged. num_shards=1 keeps the original behavior
+    # (hand the bucket directories to the reader and let it glob them).
+    if num_shards > 1:
+        all_files = sorted(f for d in input_paths for f in glob.glob(os.path.join(d, "*.parquet")))
+        if not all_files:
+            msg = f"No .parquet files found under {input_paths} to shard"
+            raise FileNotFoundError(msg)
+        reader_paths = all_files[shard_id::num_shards]
+        logger.info(
+            f"Shard {shard_id}/{num_shards}: reading {len(reader_paths)} of {len(all_files)} files"
+        )
+        if not reader_paths:
+            logger.warning(
+                f"Shard {shard_id} selected 0 files (num_shards={num_shards} exceeds file count "
+                f"{len(all_files)}); this task will produce no output."
+            )
+    else:
+        reader_paths = input_paths
+
     pipeline.add_stage(
         ParquetReader(
-            file_paths=input_paths,
+            file_paths=reader_paths,
             read_kwargs={"engine": "pyarrow", "dtype_backend": "pyarrow"},
         )
     )
@@ -433,7 +460,21 @@ def build_pipeline(
 
     pipeline.add_stage(add_document_id)
 
-    pipeline = _add_preprocessing_stages(pipeline, task_config, tokenizer, hf_token)
+    # use_streaming_chunker has been added afterwards and is not part of the vendored pipeline
+    if use_streaming_chunker:
+        # Memory-safe preprocessing: same chunks, no per-line explosion.
+        sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "lib"))
+        from sdg_chunker import add_streaming_chunker_stages
+
+        prefix_token_count = _get_prefix_token_count(
+            tokenizer, task_config["system_prompt"], task_config["prompt_template"]
+        )
+        max_segment_tokens = task_config["max_input_tokens"] - prefix_token_count - 2
+        pipeline = add_streaming_chunker_stages(
+            pipeline, task_config, tokenizer, hf_token, max_segment_tokens
+        )
+    else:
+        pipeline = _add_preprocessing_stages(pipeline, task_config, tokenizer, hf_token)
 
     if task_name == "diverse_qa":
         pipeline.add_stage(
@@ -521,6 +562,9 @@ def run_task(
         input_dir=args.input_dir,
         output_dir=args.output_dir,
         output_format=args.output_format,
+        num_shards=args.num_shards,
+        shard_id=args.shard_id,
+        use_streaming_chunker=args.streaming_chunker,
     )
 
     logger.info(pipeline.describe())
@@ -584,10 +628,18 @@ def _start_inference_server(args: argparse.Namespace):
             "tensor_parallel_size": tp_size,
             "max_model_len": args.max_model_len,
             "gpu_memory_utilization": args.gpu_memory_utilization,
+            # GH200/aarch64 + Ray-executor mitigations (confirmed needed live):
+            #  - custom all-reduce fails with "invalid argument" (custom_all_reduce.cuh)
+            #  - torch.compile/cudagraph cache hits "Stale file handle" on the shared FS
+            "enforce_eager": args.enforce_eager,
+            "disable_custom_all_reduce": args.disable_custom_all_reduce,
         },
     )
 
-    server = InferenceServer(models=[server_config])
+    server = InferenceServer(
+        models=[server_config],
+        health_check_timeout_s=args.serve_health_timeout,
+    )
     server.start()
     logger.info(f"Local inference server ready at {server.endpoint}")
     return server
@@ -597,6 +649,10 @@ def main(args: argparse.Namespace) -> None:
     inference_server = None
 
     try:
+        if args.num_shards < 1 or not (0 <= args.shard_id < args.num_shards):
+            msg = f"Invalid sharding: shard_id={args.shard_id} must be in [0, num_shards={args.num_shards})."
+            raise ValueError(msg)
+
         tokenizer_name = args.tokenizer if args.tokenizer else args.model_name
         tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
         args.hf_token = os.environ.get("HF_TOKEN", "")
@@ -730,6 +786,23 @@ def attach_args() -> argparse.ArgumentParser:
         help="Output format for generated data.",
     )
 
+    # Sharding for independent-job arrays (e.g. a Slurm array). Each process
+    # reads a disjoint, strided slice of the input parquet files. Point each
+    # array task at its own --output-dir to avoid output collisions.
+    parser.add_argument(
+        "--num-shards",
+        type=int,
+        default=1,
+        help="Split the input parquet files into this many disjoint shards. "
+        "1 (default) reads all files. Set to the array size for a Slurm array.",
+    )
+    parser.add_argument(
+        "--shard-id",
+        type=int,
+        default=0,
+        help="0-based index of the shard this process reads (used when --num-shards > 1).",
+    )
+
     parser.add_argument(
         "--executor",
         type=str,
@@ -748,6 +821,14 @@ def attach_args() -> argparse.ArgumentParser:
         action="store_true",
         help="Use SlurmRayClient to form a multi-node Ray cluster from the SLURM allocation "
         "(set when running via srun inside an sbatch script; see scripts/).",
+    )
+
+    parser.add_argument(
+        "--streaming-chunker",
+        action="store_true",
+        help="Use the memory-safe streaming chunker for preprocessing instead of the "
+        "stock split/explode/join (avoids OOM on documents with millions of lines). "
+        "Output is equivalent; see tests/test_sdg_chunker.py. Default: off.",
     )
 
     parser.add_argument(
@@ -804,6 +885,38 @@ def attach_args() -> argparse.ArgumentParser:
         type=float,
         default=0.9,
         help="Fraction of GPU memory for vLLM when using --serve-model (0.0-1.0).",
+    )
+    parser.add_argument(
+        "--enforce-eager",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help=(
+            "Run vLLM in eager mode (no CUDA graph / torch.compile) when using "
+            "--serve-model. Default True: on this cluster the compile/graph cache "
+            "hits 'Stale file handle' on the shared FS. Pass --no-enforce-eager to "
+            "re-enable graphs once that's resolved (faster inference)."
+        ),
+    )
+    parser.add_argument(
+        "--disable-custom-all-reduce",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help=(
+            "Disable vLLM's custom all-reduce when using --serve-model. Default True: "
+            "it fails with a CUDA 'invalid argument' error (custom_all_reduce.cuh) on "
+            "this GH200 setup under the Ray executor."
+        ),
+    )
+    parser.add_argument(
+        "--serve-health-timeout",
+        type=int,
+        default=300,
+        help=(
+            "Seconds to wait for the Ray Serve deployment to become healthy when "
+            "using --serve-model. Must exceed the model's load time — raise for large "
+            "models (e.g. 1800 for a 30B that takes ~10 min to load); the 300 default "
+            "will time out mid-load otherwise."
+        ),
     )
 
     parser.add_argument(

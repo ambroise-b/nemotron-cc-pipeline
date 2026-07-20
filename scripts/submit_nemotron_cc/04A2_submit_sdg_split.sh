@@ -1,17 +1,16 @@
 #!/bin/bash
 # =============================================================================
-# Submit stage 4 (SDG) using the split-node design: dedicated server nodes
-# running a real multi-node vLLM deployment (Ray's `symmetric-run`), a
-# dedicated compute node calling it over HTTP.
+# Submit stage 4 (SDG) using the UNIFIED multi-node design: one Ray cluster
+# across all nodes, vLLM served via Ray Serve (one replica per node), and the
+# data pipeline on the same cluster. (Replaces the old split-node design; see
+# scripts/slurm/run_sdg_split.sbatch header for why.)
 #
 # Run from the project root:
-#   bash scripts/submit_default/04b_submit_sdg_split.sh
+#   bash scripts/submit_nemotron_cc/04A2_submit_sdg_split.sh
 #
-# Alternative to 04_submit_sdg.sh (single-node --serve-model, limited to
-# whatever fits on one node). All the actual config (node counts, model,
-# vLLM flags, tasks) lives in scripts/slurm/run_sdg_split.sbatch itself — this is
-# just a thin, consistently-located pointer to it; edit that file, not this
-# one, to change resources/model/etc.
+# All the actual config (node count, model, TP, tasks) lives in
+# scripts/slurm/run_sdg_split.sbatch itself — this is just a thin,
+# consistently-located pointer to it; edit that file to change resources/model.
 # =============================================================================
 set -euo pipefail
 
@@ -28,5 +27,5 @@ fi
 RESERVATION="SD-69241-apertus-1-5-0"
 #RESERVATION=""
 
-echo "Submitting stage 4, split-node design (see scripts/slurm/run_sdg_split.sbatch for config)"
+echo "Submitting stage 4, unified Ray Serve design (see scripts/slurm/run_sdg_split.sbatch for config)"
 sbatch ${RESERVATION:+--reservation="${RESERVATION}"} scripts/slurm/run_sdg_split.sbatch

@@ -128,9 +128,19 @@ once (online, one node, inside the container) with:
 
 ```bash
 cd /users/$USER/repos/nemotron_cc_pipeline
-bash scripts/submit_init/00_submit_warm_hf_cache.sh          # classifiers + Qwen
-# INCLUDE_QWEN=0 bash scripts/submit_init/00_submit_warm_hf_cache.sh   # skip the ~60GB Qwen
+bash scripts/submit_utils/00_submit_warm_hf_cache.sh          # classifiers + Qwen
+# INCLUDE_QWEN=0 bash scripts/submit_utils/00_submit_warm_hf_cache.sh   # skip the ~60GB Qwen
 tail -f logs/warm_hf_cache_<jobid>.log
+```
+
+Verify the SDG model (stage 4) actually landed before launching any array — a
+missing or partial cache is exactly what forces every task online and triggers
+the HF `429 Too Many Requests` rate-limit (see the SDG note below):
+
+```bash
+d="$HF_HUB_CACHE/hub/models--Qwen--Qwen3-30B-A3B-Instruct-2507"
+ls "$d/snapshots/"*/*.safetensors | wc -l   # expect 16 shards (~57 GB total)
+du -shL "$d"
 ```
 
 This downloads everything the offline stages need into `$HF_HUB_CACHE`:
@@ -155,6 +165,16 @@ Notes:
   Stage 1 needs the network anyway (it downloads Common Crawl).
 - To run a stage online instead (e.g. to pull a model you haven't cached),
   override per-submission: `HF_HUB_OFFLINE=0 TRANSFORMERS_OFFLINE=0 bash scripts/submit_nemotron_cc/03_...`.
+- **Stage 4 SDG array especially depends on this.** `run_sdg_array.sbatch` fans
+  a job out over many single-node tasks, each starting its own vLLM (4 replicas).
+  If the cache isn't warmed / offline mode is off, every task hits the Hub at
+  startup (`AutoTokenizer` → `model_info()`, vLLM → `tree/main`); with a wide
+  array the collective bursts blow the **1000-req/5-min** quota and shards die
+  with `HfHubHTTPError: 429 Too Many Requests`. The launcher now forwards
+  `HF_HUB_CACHE` + `HF_HUB_OFFLINE`/`TRANSFORMERS_OFFLINE` into the container (as
+  `run_stage.sbatch` does), so with the model warmed (verify command above) the
+  tasks read weights straight from `$HF_HUB_CACHE` with zero HTTP. It also
+  staggers task startups as a backstop for the `HF_HUB_OFFLINE=0` case.
 
 ---
 
