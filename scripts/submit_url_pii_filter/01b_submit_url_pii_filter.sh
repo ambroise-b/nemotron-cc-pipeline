@@ -25,16 +25,16 @@ fi
 : "${SCRATCH:?SCRATCH not set — expected on CSCS Clariden/Alps}"
 
 # --- Run identity ------------------------------------------------------------
-RUN_NAME="CC-MAIN-2026-21_all"     # shard lists go to runs/<RUN_NAME>/
+RUN_NAME="CC-MAIN-2014-10_all"     # shard lists go to runs/<RUN_NAME>/
 NUM_SHARDS=100                 # number of shards == number of array tasks
-MAX_PARALLEL=25                # max array tasks running at once (SLURM '%' cap);
+MAX_PARALLEL=50                # max array tasks running at once (SLURM '%' cap);
                                # empty = no cap (scheduler/QOS decides)
 
 # --- Paths (everything under $SCRATCH) ---------------------------------------
 # INPUT_DIR is step_1-extract_local_warc.py's extracted JSONL output.
 # The filtered output is a schema-identical drop-in for step_2a to consume.
 #DATA_DIR="${SCRATCH}/nemotron-cc-data"
-DATA_DIR="${SCRATCH}/nemotron-cc-pipeline-CC-MAIN-2026-21"
+DATA_DIR="${SCRATCH}/nemotron-cc-pipeline-CC-MAIN-2014-10"
 INPUT_DIR="${DATA_DIR}/extracted/${RUN_NAME}"          # step_1 extracted JSONL (dump root)
 OUTPUT_DIR="${DATA_DIR}/url_pii_filtered/${RUN_NAME}"  # kept docs (flat, shard-prefixed files)
 REMOVED_DIR="${DATA_DIR}/url_pii_removed/${RUN_NAME}"  # robots-excluded docs (separate tree)
@@ -62,8 +62,8 @@ TIME=04:00:00
 # When RESERVATION is non-empty, --reservation=<RESERVATION> is appended to the
 # sbatch call below; when it's "", the flag is omitted entirely and Slurm
 # schedules normally. Comment/uncomment to switch pools or disable it quickly.
-RESERVATION="SD-69241-apertus-1-5-0"
-#RESERVATION=""
+#RESERVATION="SD-69241-apertus-1-5-0"
+RESERVATION=""
 
 echo "Submitting URL + PII filter run '${RUN_NAME}'"
 echo "  input:  ${INPUT_DIR}"

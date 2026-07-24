@@ -32,19 +32,19 @@ TIME=01:00:00
 # When RESERVATION is non-empty, --reservation=<RESERVATION> is appended to the
 # sbatch call below; when it's "", the flag is omitted entirely and Slurm
 # schedules normally. Comment/uncomment to switch pools or disable it quickly.
-RESERVATION="SD-69241-apertus-1-5-0"
-#RESERVATION=""
+#RESERVATION="SD-69241-apertus-1-5-0"
+RESERVATION=""
 
 # --- Stage 2a args -----------------------------------------------------------
 #DATA_DIR="${SCRATCH}/nemotron-cc-data"
-DATA_DIR="${SCRATCH}/nemotron-cc-pipeline-CC-MAIN-2026-21"
+DATA_DIR="${SCRATCH}/nemotron-cc-pipeline-CC-MAIN-2014-10"
 
 STEP_SCRIPT="src/nemotron-cc/step_2a-exact_dedup.py"
 # --num-gpus/--num-cpus intentionally omitted: their default ("all
 # available") lets SlurmRayClient auto-detect the full multi-node
 # allocation instead of us guessing per-node vs. cluster-total semantics.
 STEP_ARGS="--identify --remove \
---input-dir ${DATA_DIR}/url_pii_filtered --cache-dir ${DATA_DIR}/cache/exact_dedup \
+--input-dir ${DATA_DIR}/url_pii_filtered_resharded --cache-dir ${DATA_DIR}/cache/exact_dedup \
 --output-dir ${DATA_DIR}/exact_deduplicated"
 
 # NOTE: --remove nests a copy of --output-dir's own basename inside itself —

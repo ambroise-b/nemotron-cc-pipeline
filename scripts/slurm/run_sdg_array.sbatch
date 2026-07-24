@@ -60,7 +60,7 @@ CHUNKER_ARG=""; [[ -n "${STREAMING_CHUNKER:-}" ]] && CHUNKER_ARG="--streaming-ch
 # four per shard in one job. Must be set — no default, so a bad submit fails
 # loudly instead of silently generating the wrong task.
 TASK="${TASK:?TASK not set — submit via scripts/submit_nemotron_cc/04A3_submit_sdg_array_<task>.sh, or export TASK=... before sbatch}"
-DATA_DIR="${SCRATCH}/nemotron-cc-pipeline-CC-MAIN-2026-21"
+DATA_DIR="${SCRATCH}/nemotron-cc-pipeline-CC-MAIN-2019-04"
 
 CONTAINER_ENV="${CONTAINER_ENV:-${REPO_DIR}/container/container.toml}"
 CONTAINER_FLAGS=(--environment="${CONTAINER_ENV}" --container-writable)
@@ -81,7 +81,7 @@ export TRANSFORMERS_OFFLINE="${TRANSFORMERS_OFFLINE:-1}"
 # always maps to the same files regardless of which indices you submit.
 NUM_SHARDS="${NUM_SHARDS:-${SLURM_ARRAY_TASK_COUNT:-1}}"
 SHARD_ID="${SLURM_ARRAY_TASK_ID:-0}"
-OUT_DIR="${DATA_DIR}/sdg_output_dp/shard_$(printf '%04d' "${SHARD_ID}")"
+OUT_DIR="${DATA_DIR}/sdg_output/shard_$(printf '%04d' "${SHARD_ID}")"
 # Per-task success marker: the pipeline writes each task to OUT_DIR/<task>/, so
 # several tasks can share a shard dir. Keying _SUCCESS on TASK means finishing
 # diverse_qa doesn't make a later distill submit skip the same shard.

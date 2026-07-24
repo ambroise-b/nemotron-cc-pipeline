@@ -23,22 +23,22 @@ fi
 # getting whatever Slurm's default per-CPU memory ratio happens to grant.
 ACCOUNT=infra01
 PARTITION=normal
-NODES=50
+NODES=20
 GPUS_PER_NODE=4
 CPUS_PER_TASK=288
 MEM=850000   # MB; a little under the node's 870000 to leave OS/slurmd headroom
-TIME=04:00:00
+TIME=06:00:00
 
 # --- SLURM reservation (optional) --------------------------------------------
 # When RESERVATION is non-empty, --reservation=<RESERVATION> is appended to the
 # sbatch call below; when it's "", the flag is omitted entirely and Slurm
 # schedules normally. Comment/uncomment to switch pools or disable it quickly.
-RESERVATION="SD-69241-apertus-1-5-0"
+#RESERVATION="SD-69241-apertus-1-5-0"
 #RESERVATION=""
 
 # --- Stage 3 args ------------------------------------------------------------
 #DATA_DIR="${SCRATCH}/nemotron-cc-data"
-DATA_DIR="${SCRATCH}/nemotron-cc-pipeline-CC-MAIN-2026-21"
+DATA_DIR="${SCRATCH}/nemotron-cc-pipeline-CC-MAIN-2014-10"
 
 #TODO change back to the original input dir
 
@@ -52,7 +52,7 @@ STEP_SCRIPT="src/nemotron-cc/step_3-quality_classification.py"
 # filter). Run 01c_submit_reshard.sh first to produce this directory.
 # ORIGINAL: --input-dir ${DATA_DIR}/fuzzy_deduplicated/fuzzy_deduplicated/
 STEP_ARGS="--classify --ensemble \
---input-dir ${DATA_DIR}/fuzzy_deduplicated_resharded/ --output-dir ${DATA_DIR}/quality_labeling"
+--input-dir ${DATA_DIR}/fuzzy_deduplicated/fuzzy_deduplicated --output-dir ${DATA_DIR}/quality_labeling"
 
 echo "Submitting stage 3 (quality classification): ${NODES} nodes, ${GPUS_PER_NODE} GPUs/node"
 STEP_SCRIPT="${STEP_SCRIPT}" STEP_ARGS="${STEP_ARGS}" \

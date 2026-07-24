@@ -8,6 +8,6 @@
 # Rerun specific failed shards (mapping fixed by NUM_SHARDS, unchanged):
 #   ARRAY_RANGE=1,249 bash scripts/submit_nemotron_cc/04A3_submit_sdg_array_distill_low.sh
 export TASK="distill"
-export MAX_CONCURRENT_REQUESTS="${MAX_CONCURRENT_REQUESTS:-32}"
+export MAX_CONCURRENT_REQUESTS="${MAX_CONCURRENT_REQUESTS:-128}"
 export STREAMING_CHUNKER="${STREAMING_CHUNKER:-1}"
 source "$(dirname "$0")/04A3_submit_sdg_array_common.sh"

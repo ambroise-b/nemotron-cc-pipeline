@@ -38,16 +38,16 @@ TIME=12:00:00
 #RESERVATION=""
 
 # --- Stage 1 (local WARC) args ----------------------------------------------
-RUN_NAME=CC-MAIN-2019-04_all
+RUN_NAME=CC-MAIN-2014-10_all
 # Pre-downloaded WARC dump (read recursively, nested subdirs supported):
 #WARC_DIR="/capstor/store/cscs/swissai/infra01/kpitas/common-crawl-CC-MAIN-2026-21/data/crawl-data/CC-MAIN-2026-21"
 #WARC_DIR="/capstor/store/cscs/swissai/infra01/kpitas/common-crawl-CC-MAIN-2026-21/data/crawl-data/CC-MAIN-2026-21"
-WARC_DIR="/capstor/store/cscs/swissai/infra01/datasets/common-crawl-CC-MAIN-2019-04/download_common-crawl-CC-MAIN/data/crawl-data/CC-MAIN-2019-04"
+WARC_DIR="/capstor/store/cscs/swissai/infra01/datasets/common-crawl-CC-MAIN-2014-10/download_common-crawl-CC-MAIN/data/crawl-data/CC-MAIN-2014-10"
 # Output/cache stay on $SCRATCH. This output dir is the INPUT_DIR of the
 # url+pii filtering step (scripts/submit_url_pii_filter/).
 #DATA_DIR="${SCRATCH}/nemotron-cc-data"
 #DATA_DIR="/capstor/store/cscs/swissai/infra01/datasets/nemotron-cc-pipeline-CC-MAIN-2026-21"
-DATA_DIR="${SCRATCH}/nemotron-cc-pipeline-CC-MAIN-2019-04"
+DATA_DIR="${SCRATCH}/nemotron-cc-pipeline-CC-MAIN-2014-10"
 OUTPUT_DIR="${DATA_DIR}/extracted/${RUN_NAME}"
 CACHE_DIR="${DATA_DIR}/cache/step1_local/${RUN_NAME}"
 # Space-separated language codes to keep (e.g. "EN" or "EN DE FR").

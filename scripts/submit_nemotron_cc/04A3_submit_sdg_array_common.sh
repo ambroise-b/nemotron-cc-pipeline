@@ -30,7 +30,7 @@ fi
 #                Don't raise much above this without re-checking node RAM.
 # MAX_CONCURRENT = how many array tasks (nodes) run at once (%N in --array).
 #                Bump toward your node budget for the full run (e.g. 100).
-export NUM_SHARDS="${NUM_SHARDS:-500}"
+export NUM_SHARDS="${NUM_SHARDS:-650}"
 MAX_CONCURRENT="${MAX_CONCURRENT:-50}"
 
 # Ray CPU slots per node (max concurrent map tasks). Default 64; lower via

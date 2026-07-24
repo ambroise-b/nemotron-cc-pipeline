@@ -23,16 +23,12 @@ fi
 : "${SCRATCH:?SCRATCH not set — expected on CSCS Clariden/Alps}"
 
 REPO_DIR="${REPO_DIR:-/users/${USER}/repos/nemotron_cc_pipeline}"
-DATA_DIR="${SCRATCH}/nemotron-cc-pipeline-CC-MAIN-2026-21"
+DATA_DIR="${SCRATCH}/nemotron-cc-pipeline-CC-MAIN-2014-10"
 
 # --- What to reshard ---------------------------------------------------------
 # PERMANENT (full runs): reshard the URL/PII filter output, before exact dedup.
-# export RESHARD_INPUT_DIR="${DATA_DIR}/url_pii_filtered"
-# export RESHARD_OUTPUT_DIR="${DATA_DIR}/url_pii_filtered_resharded"
-#
-# TEMPORARY (current data): reshard after fuzzy dedup to unblock stage 3.
-export RESHARD_INPUT_DIR="${DATA_DIR}/fuzzy_deduplicated/fuzzy_deduplicated"
-export RESHARD_OUTPUT_DIR="${DATA_DIR}/fuzzy_deduplicated_resharded"
+export RESHARD_INPUT_DIR="${DATA_DIR}/url_pii_filtered"
+export RESHARD_OUTPUT_DIR="${DATA_DIR}/url_pii_filtered_resharded"
 
 export SHARD_SIZE="${SHARD_SIZE:-480M}"
 FILES_PER_TASK="${FILES_PER_TASK:-32}"
@@ -40,8 +36,8 @@ MAXPAR="${MAXPAR:-16}"          # max array tasks (= nodes) running at once
 export FILES_PER_TASK
 
 # --- SLURM reservation (optional) --------------------------------------------
-RESERVATION="SD-69241-apertus-1-5-0"
-#RESERVATION=""
+#RESERVATION="SD-69241-apertus-1-5-0"
+RESERVATION=""
 
 # --- Build the file manifest + array range -----------------------------------
 mkdir -p "${RESHARD_OUTPUT_DIR}" "${REPO_DIR}/logs"
