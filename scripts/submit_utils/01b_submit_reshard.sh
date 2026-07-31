@@ -23,7 +23,7 @@ fi
 : "${SCRATCH:?SCRATCH not set — expected on CSCS Clariden/Alps}"
 
 REPO_DIR="${REPO_DIR:-/users/${USER}/repos/nemotron_cc_pipeline}"
-DATA_DIR="${SCRATCH}/nemotron-cc-pipeline-CC-MAIN-2014-10"
+DATA_DIR="${SCRATCH}/nemotron-cc-pipeline-CC-MAIN-2026-21"
 
 # --- What to reshard ---------------------------------------------------------
 # PERMANENT (full runs): reshard the URL/PII filter output, before exact dedup.

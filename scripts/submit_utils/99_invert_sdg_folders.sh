@@ -32,10 +32,10 @@ set -euo pipefail
 # --------------------------------------------------------------------------- #
 
 # Root that contains the shard_* folders.
-SRC="${SRC:-/iopsstor/scratch/cscs/aborbely/nemotron-cc-pipeline-CC-MAIN-2026-21/sdg_output}"
+SRC="${SRC:-/iopsstor/scratch/cscs/aborbely/nemotron-cc-pipeline-CC-MAIN-2019-04/sdg_output}"
 
 # Where the permuted (task-first) tree is written.
-DEST="${DEST:-/iopsstor/scratch/cscs/aborbely/nemotron-cc-pipeline-CC-MAIN-2026-21/data_ablations/sdg_inverted}"
+DEST="${DEST:-/iopsstor/scratch/cscs/aborbely/nemotron-cc-pipeline-CC-MAIN-2019-04/data_ablations/sdg_inverted}"
 
 # How to place each shard's task folder into the new layout:
 #   cp       -> full independent copy (safe, but duplicates all the data)

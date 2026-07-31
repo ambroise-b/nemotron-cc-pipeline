@@ -37,7 +37,7 @@ RESERVATION=""
 
 # --- Stage 2b args -----------------------------------------------------------
 #DATA_DIR="${SCRATCH}/nemotron-cc-data"
-DATA_DIR="${SCRATCH}/nemotron-cc-pipeline-CC-MAIN-2014-10"
+DATA_DIR="${SCRATCH}/nemotron-cc-pipeline-CC-MAIN-2023-06"
 
 STEP_SCRIPT="src/nemotron-cc/step_2b-fuzzy_dedup.py"
 # --num-gpus/--num-cpus intentionally omitted — see 02a's comment.
