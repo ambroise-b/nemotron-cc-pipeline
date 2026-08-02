@@ -1,0 +1,15 @@
+# NeMo Curator 26.07 (Curator 1.3.0). Used only by stage 3, which needs
+# with_(num_workers=...) — absent in 26.04. Everything else stays on container.toml.
+image = "/iopsstor/scratch/cscs/aborbely/images/nemo-curator-26.07-gz.sqsh"
+
+# "src_path:trg_path" mounts the src_path on the host inside the container at the trg_path.
+mounts = ["/capstor", "/iopsstor", "/users"]
+
+writable = true
+
+# The initial directory in the container.
+workdir = "/users/${USER}"
+
+[annotations]
+com.hooks.aws_ofi_nccl.enabled = "true"
+com.hooks.aws_ofi_nccl.variant = "cuda12"

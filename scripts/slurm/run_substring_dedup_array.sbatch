@@ -13,7 +13,9 @@
 # Two top-level trees under ${SHARD_ROOT}: sharding/shard_XXXX/ holds ONLY
 # the file-mapping symlinks (owned by shard_symlinks.py — this script never
 # writes there), and substring_dedup/shard_XXXX/ holds this task's own
-# cache/output/workdir. Restarting one shard's run from scratch is
+# cache/output/workdir — cache and workdir are deleted once the shard
+# succeeds, so a completed shard keeps only output/.
+# Restarting one shard's run from scratch is
 # `rm -rf ${SHARD_ROOT}/substring_dedup/shard_XXXX` (leaves the file mapping
 # untouched); a full restart is `rm -rf ${SHARD_ROOT}`.
 #
@@ -110,6 +112,11 @@ export OUTPUT_PATH='${OUTPUT_PATH}'
 export NUM_THREADS='${NUM_THREADS}'
 bash exact_substring_dedup.sh
 "
+
+# remove cache and workdir
+echo "Removing $(du -sh "${MAIN_CACHE_PATH}" "${TASK_WORKDIR}" 2>/dev/null | tr '\n' ' ') - $(date)"
+rm -rf "${MAIN_CACHE_PATH}" "${TASK_WORKDIR}"
+
 
 touch "${SUCCESS_MARKER}"
 echo "=================================================="

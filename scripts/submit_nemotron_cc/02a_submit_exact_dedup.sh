@@ -37,7 +37,7 @@ RESERVATION=""
 
 # --- Stage 2a args -----------------------------------------------------------
 #DATA_DIR="${SCRATCH}/nemotron-cc-data"
-DATA_DIR="${SCRATCH}/nemotron-cc-pipeline-CC-MAIN-2023-06"
+DATA_DIR="${SCRATCH}/nemotron-cc-pipeline-CC-MAIN-2026-21"
 
 STEP_SCRIPT="src/nemotron-cc/step_2a-exact_dedup.py"
 # --num-gpus/--num-cpus intentionally omitted: their default ("all

@@ -14,7 +14,8 @@
 #   sharding/shard_XXXX/         — ONLY the file-mapping symlinks, written by
 #                                   shard_symlinks.py below.
 #   substring_dedup/shard_XXXX/  — that shard's cache/output/workdir, written
-#                                   by the array job.
+#                                   by the array job (cache and workdir are
+#                                   deleted once the shard succeeds).
 # A full restart from scratch is `rm -rf ${SHARD_ROOT}`; to redo just one
 # shard's run without re-sharding, `rm -rf ${SHARD_ROOT}/substring_dedup/shard_0003`.
 # Resharding here only ever touches sharding/ — it's safe to re-run this
@@ -39,7 +40,7 @@ fi
 : "${SCRATCH:?SCRATCH not set — expected on CSCS Clariden/Alps}"
 
 REPO_DIR="${REPO_DIR:-/users/${USER}/repos/nemotron_cc_pipeline}"
-DATA_DIR="${SCRATCH}/nemotron-cc-pipeline-CC-MAIN-2026-21"
+DATA_DIR="${SCRATCH}/nemotron-cc-pipeline-CC-MAIN-2017-13"
 
 # --- SLURM resources ----------------------------------------------------------
 ACCOUNT=infra01
@@ -57,10 +58,9 @@ RESERVATION=""
 # --- What to shard -------------------------------------------------------------
 # Matches 02c_submit_substring_dedup.sh's INPUT_PATH (stage 2b's nested output
 # dir — see its script's NOTE).
-#INPUT_PATH="${DATA_DIR}/fuzzy_deduplicated/fuzzy_deduplicated"
-INPUT_PATH="${DATA_DIR}/fuzzy_deduplicated_resharded" #/!\ only for 2026 dump
+INPUT_PATH="${DATA_DIR}/fuzzy_deduplicated/fuzzy_deduplicated"
 SHARD_ROOT="${DATA_DIR}/substring_dedup"
-NUM_SHARDS="${NUM_SHARDS:-70}" # we try to have shard of ~58GB
+NUM_SHARDS="${NUM_SHARDS:-80}" # we try to have shard of ~58GB MAX
 
 # Which array indices to actually submit — defaults to all of them
 # (0-(NUM_SHARDS-1)), capped at MAXPAR concurrent. Override to smoke-test on

@@ -47,6 +47,8 @@ from nemo_curator.pipeline import Pipeline
 from nemo_curator.stages.base import ProcessingStage
 from nemo_curator.stages.function_decorators import processing_stage
 from nemo_curator.stages.text.classifiers.fineweb_edu import (
+    FINEWEB_MIXTRAL_EDU_MODEL_IDENTIFIER,
+    FINEWEB_NEMOTRON_EDU_MODEL_IDENTIFIER,
     FineWebMixtralEduClassifier,
     FineWebNemotronEduClassifier,
 )
@@ -54,6 +56,7 @@ from nemo_curator.stages.text.filters.fasttext import FastTextQualityFilter
 from nemo_curator.stages.text.filters.score_filter import Filter, Score
 from nemo_curator.stages.text.io.reader import JsonlReader, ParquetReader
 from nemo_curator.stages.text.io.writer import ParquetWriter
+from nemo_curator.stages.text.models.utils import format_name_with_suffix
 from nemo_curator.tasks import DocumentBatch
 from nemo_curator.tasks.utils import TaskPerfUtils
 
@@ -75,6 +78,11 @@ CLASSIFIER_SCORES = {
         "float_score": "fasttext-quality-score",
     },
 }
+
+# LOCAL: with_() keys are stage *instance* names (derived from the model id),
+# not the class names shown in the progress tables. Unknown keys raise at build.
+NEMOTRON_MODEL_STAGE_NAME = format_name_with_suffix(FINEWEB_NEMOTRON_EDU_MODEL_IDENTIFIER, suffix="_model")
+MIXTRAL_MODEL_STAGE_NAME = format_name_with_suffix(FINEWEB_MIXTRAL_EDU_MODEL_IDENTIFIER, suffix="_model")
 
 FASTTEXT_HQ_MODEL_REPO = "mlfoundations/fasttext-oh-eli5"
 FASTTEXT_HQ_MODEL_FILENAME = "openhermes_reddit_eli5_vs_rw_v2_bigram_200k_train.bin"
@@ -216,22 +224,34 @@ def run_classification(args: argparse.Namespace) -> None:
     )
 
     # 3b. Nemotron-4 edu classifier (GPU)
-    pipeline.add_stage(
-        FineWebNemotronEduClassifier(
-            float_score_field=CLASSIFIER_SCORES["nemotron"]["float_score"],
-            int_score_field=CLASSIFIER_SCORES["nemotron"]["int_score"],
-            label_field=CLASSIFIER_SCORES["nemotron"]["label"],
-        )
+    nemotron_classifier = FineWebNemotronEduClassifier(
+        float_score_field=CLASSIFIER_SCORES["nemotron"]["float_score"],
+        int_score_field=CLASSIFIER_SCORES["nemotron"]["int_score"],
+        label_field=CLASSIFIER_SCORES["nemotron"]["label"],
     )
 
     # 3c. Mixtral edu classifier (GPU)
-    pipeline.add_stage(
-        FineWebMixtralEduClassifier(
-            float_score_field=CLASSIFIER_SCORES["mixtral"]["float_score"],
-            int_score_field=CLASSIFIER_SCORES["mixtral"]["int_score"],
-            label_field=CLASSIFIER_SCORES["mixtral"]["label"],
-        )
+    mixtral_classifier = FineWebMixtralEduClassifier(
+        float_score_field=CLASSIFIER_SCORES["mixtral"]["float_score"],
+        int_score_field=CLASSIFIER_SCORES["mixtral"]["int_score"],
+        label_field=CLASSIFIER_SCORES["mixtral"]["label"],
     )
+
+    # LOCAL: vendor adds both classifiers straight to the pipeline; we hold them
+    # so their GPU actor counts can be pinned first. Unpinned, Xenna's autoscaler
+    # drifts them (40/40 <-> 41/39) and, with every GPU taken, a reallocated
+    # actor lands on an occupied device and OOMs (job 2965494, died at 54%).
+    if args.classifier_num_workers:
+        logger.info(f"Pinning each GPU classifier stage to {args.classifier_num_workers} workers")
+        nemotron_classifier = nemotron_classifier.with_(
+            {NEMOTRON_MODEL_STAGE_NAME: {"num_workers": args.classifier_num_workers}}
+        )
+        mixtral_classifier = mixtral_classifier.with_(
+            {MIXTRAL_MODEL_STAGE_NAME: {"num_workers": args.classifier_num_workers}}
+        )
+
+    pipeline.add_stage(nemotron_classifier)
+    pipeline.add_stage(mixtral_classifier)
 
     # 4. Drop label and original int_score columns — the ensemble step
     #    recomputes 0–19 int bins from the float scores.
@@ -486,6 +506,15 @@ def attach_args() -> argparse.ArgumentParser:
         default=0.01,
         help="Fraction of rows to sample per file when computing percentile thresholds. "
         "Use < 1.0 (e.g. 0.01) to reduce memory at large scale.",
+    )
+
+    # GPU stage sizing (LOCAL: not in vendor script)
+    parser.add_argument(
+        "--classifier-num-workers",
+        type=int,
+        default=None,
+        help="Fixed actor count for EACH of the two GPU classifier stages. Leave unset to let "
+        "Xenna's autoscaler size them, which risks OOM on a fully subscribed cluster.",
     )
 
     # Ray cluster
