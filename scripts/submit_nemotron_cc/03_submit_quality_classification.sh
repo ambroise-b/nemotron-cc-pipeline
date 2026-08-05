@@ -43,12 +43,12 @@ CLASSIFIER_NUM_WORKERS=$(( (NODES * GPUS_PER_NODE - GPU_RESERVE) / 2 ))
 # When RESERVATION is non-empty, --reservation=<RESERVATION> is appended to the
 # sbatch call below; when it's "", the flag is omitted entirely and Slurm
 # schedules normally. Comment/uncomment to switch pools or disable it quickly.
-#RESERVATION="SD-69241-apertus-1-5-0"
+RESERVATION="SD-69241-apertus-1-5-0"
 #RESERVATION=""
 
 # --- Stage 3 args ------------------------------------------------------------
 #DATA_DIR="${SCRATCH}/nemotron-cc-data"
-DATA_DIR="${SCRATCH}/nemotron-cc-pipeline-CC-MAIN-2019-04"
+DATA_DIR="${SCRATCH}/nemotron-cc-pipeline-CC-MAIN-2025-21"
 
 #TODO change back to the original input dir
 
@@ -61,15 +61,16 @@ STEP_SCRIPT="src/nemotron-cc/step_3-quality_classification.py"
 # Revert to the commented line once resharding moves upstream (after the URL/PII
 # filter). Run 01c_submit_reshard.sh first to produce this directory.
 # ORIGINAL: --input-dir ${DATA_DIR}/fuzzy_deduplicated/fuzzy_deduplicated/
+# Pinning disabled for now: testing whether 26.07 alone fixes the GPU actor drift.
+# Re-append --classifier-num-workers ${CLASSIFIER_NUM_WORKERS} to turn it back on.
 STEP_ARGS="--classify --ensemble \
---input-dir ${DATA_DIR}/substring_dedup/substring_dedup --output-dir ${DATA_DIR}/quality_labeling \
---classifier-num-workers ${CLASSIFIER_NUM_WORKERS}"
+--input-dir ${DATA_DIR}/substring_dedup/substring_dedup --output-dir ${DATA_DIR}/quality_labeling"
 
 # Stage 3 only: 26.07 image, for with_(num_workers=...). Other stages use container.toml.
 CONTAINER_ENV="$(pwd)/container/container_new.toml"
 
 echo "Submitting stage 3 (quality classification): ${NODES} nodes, ${GPUS_PER_NODE} GPUs/node"
-echo "  GPU classifier stages pinned to ${CLASSIFIER_NUM_WORKERS} workers each (of $(( NODES * GPUS_PER_NODE )) GPUs)"
+echo "  GPU classifier stages: autoscaled (pinning to ${CLASSIFIER_NUM_WORKERS} available but disabled)"
 echo "  Container: ${CONTAINER_ENV}"
 STEP_SCRIPT="${STEP_SCRIPT}" STEP_ARGS="${STEP_ARGS}" CONTAINER_ENV="${CONTAINER_ENV}" \
 sbatch -A "${ACCOUNT}" -p "${PARTITION}" \

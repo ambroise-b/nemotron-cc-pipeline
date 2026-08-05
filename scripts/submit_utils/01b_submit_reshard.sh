@@ -23,12 +23,15 @@ fi
 : "${SCRATCH:?SCRATCH not set — expected on CSCS Clariden/Alps}"
 
 REPO_DIR="${REPO_DIR:-/users/${USER}/repos/nemotron_cc_pipeline}"
-DATA_DIR="${SCRATCH}/nemotron-cc-pipeline-CC-MAIN-2026-21"
+DATA_DIR="${SCRATCH}/nemotron-cc-pipeline-CC-MAIN-2025-21"
 
 # --- What to reshard ---------------------------------------------------------
 # PERMANENT (full runs): reshard the URL/PII filter output, before exact dedup.
 export RESHARD_INPUT_DIR="${DATA_DIR}/url_pii_filtered"
 export RESHARD_OUTPUT_DIR="${DATA_DIR}/url_pii_filtered_resharded"
+
+#export RESHARD_INPUT_DIR="${DATA_DIR}/exact_deduplicated"
+#export RESHARD_OUTPUT_DIR="${DATA_DIR}/exact_deduplicated_resharded"
 
 export SHARD_SIZE="${SHARD_SIZE:-480M}"
 FILES_PER_TASK="${FILES_PER_TASK:-32}"

@@ -37,12 +37,12 @@ RESERVATION=""
 
 # --- Stage 2b args -----------------------------------------------------------
 #DATA_DIR="${SCRATCH}/nemotron-cc-data"
-DATA_DIR="${SCRATCH}/nemotron-cc-pipeline-CC-MAIN-2017-13"
+DATA_DIR="${SCRATCH}/nemotron-cc-pipeline-CC-MAIN-2025-21"
 
 STEP_SCRIPT="src/nemotron-cc/step_2b-fuzzy_dedup.py"
 # --num-gpus/--num-cpus intentionally omitted — see 02a's comment.
 # --input-dir points at stage 2a's nested output dir (see its own script's
-# NOTE for why).
+# NOTE for why). #original path ${DATA_DIR}/exact_deduplicated/exact_deduplicated
 STEP_ARGS="--identify --remove \
 --input-dir ${DATA_DIR}/exact_deduplicated/exact_deduplicated --cache-dir ${DATA_DIR}/cache/fuzzy_dedup \
 --output-dir ${DATA_DIR}/fuzzy_deduplicated"

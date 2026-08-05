@@ -40,7 +40,7 @@ fi
 : "${SCRATCH:?SCRATCH not set — expected on CSCS Clariden/Alps}"
 
 REPO_DIR="${REPO_DIR:-/users/${USER}/repos/nemotron_cc_pipeline}"
-DATA_DIR="${SCRATCH}/nemotron-cc-pipeline-CC-MAIN-2017-13"
+DATA_DIR="${SCRATCH}/nemotron-cc-pipeline-CC-MAIN-2025-21"
 
 # --- SLURM resources ----------------------------------------------------------
 ACCOUNT=infra01
@@ -49,7 +49,7 @@ CPUS_PER_TASK=288
 MEM=850000   # MB; a little under the node's 870000 to leave OS/slurmd headroom
 GPUS_PER_NODE=4
 TIME=12:00:00
-MAXPAR="${MAXPAR:-50}" # max array tasks (= nodes) running at once 
+MAXPAR="${MAXPAR:-30}" # max array tasks (= nodes) running at once 
 
 # --- SLURM reservation (optional) --------------------------------------------
 #RESERVATION="SD-69241-apertus-1-5-0"
@@ -60,7 +60,7 @@ RESERVATION=""
 # dir — see its script's NOTE).
 INPUT_PATH="${DATA_DIR}/fuzzy_deduplicated/fuzzy_deduplicated"
 SHARD_ROOT="${DATA_DIR}/substring_dedup"
-NUM_SHARDS="${NUM_SHARDS:-80}" # we try to have shard of ~58GB MAX
+NUM_SHARDS="${NUM_SHARDS:-75}" # we try to have shard of ~58GB MAX
 
 # Which array indices to actually submit — defaults to all of them
 # (0-(NUM_SHARDS-1)), capped at MAXPAR concurrent. Override to smoke-test on

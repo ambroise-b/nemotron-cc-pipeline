@@ -60,7 +60,7 @@ CHUNKER_ARG=""; [[ -n "${STREAMING_CHUNKER:-}" ]] && CHUNKER_ARG="--streaming-ch
 # four per shard in one job. Must be set — no default, so a bad submit fails
 # loudly instead of silently generating the wrong task.
 TASK="${TASK:?TASK not set — submit via scripts/submit_nemotron_cc/04A3_submit_sdg_array_<task>.sh, or export TASK=... before sbatch}"
-DATA_DIR="${SCRATCH}/nemotron-cc-pipeline-CC-MAIN-2019-04"
+DATA_DIR="${SCRATCH}/nemotron-cc-pipeline-CC-MAIN-2014-10"
 
 CONTAINER_ENV="${CONTAINER_ENV:-${REPO_DIR}/container/container.toml}"
 CONTAINER_FLAGS=(--environment="${CONTAINER_ENV}" --container-writable)

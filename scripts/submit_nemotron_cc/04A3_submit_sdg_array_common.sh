@@ -23,15 +23,14 @@ if [[ ! -f scripts/slurm/run_sdg_array.sbatch ]]; then
 fi
 
 # --- Array sizing ------------------------------------------------------------
-# NUM_SHARDS   = how many disjoint pieces to split the input into (= array size;
-#                each task = 1 node). Default 480 => ~40 files/shard, which was
-#                CALIBRATED to keep the DocumentJoiner's per-worker buffer memory-
-#                safe (~500 GB peak of 856; bigger shards, e.g. ~96 files, OOM'd).
-#                Don't raise much above this without re-checking node RAM.
-# MAX_CONCURRENT = how many array tasks (nodes) run at once (%N in --array).
-#                Bump toward your node budget for the full run (e.g. 100).
-export NUM_SHARDS="${NUM_SHARDS:-650}"
-MAX_CONCURRENT="${MAX_CONCURRENT:-50}"
+# as a rough estimate to know num_shards we (GB_bucket_18 + GB_bucket_19) / 0.258
+export NUM_SHARDS="${NUM_SHARDS:-470}"
+MAX_CONCURRENT="${MAX_CONCURRENT:-100}"
+
+# 2014 : 470 shards
+# 2017 : 720 shards
+# 2023 : 670 shards
+# 2026 : 480 shards
 
 # Ray CPU slots per node (max concurrent map tasks). Default 64; lower via
 # NUM_CPUS=… to throttle splitter concurrency on OOM-prone shards.
@@ -52,8 +51,8 @@ export MAX_CONCURRENT_REQUESTS="${MAX_CONCURRENT_REQUESTS:-${_DEFAULT_MCR}}"
 ARRAY_RANGE="${ARRAY_RANGE:-0-$(( NUM_SHARDS - 1 ))}"
 
 # --- SLURM reservation (optional) --------------------------------------------
-#RESERVATION="SD-69241-apertus-1-5-0"
-RESERVATION=""
+RESERVATION="SD-69241-apertus-1-5-0"
+#RESERVATION=""
 
 echo "Submitting stage 4 (SDG array) task '${TASK}': NUM_SHARDS=${NUM_SHARDS}, NUM_CPUS=${NUM_CPUS}, MAX_CONCURRENT_REQUESTS=${MAX_CONCURRENT_REQUESTS}, running indices [${ARRAY_RANGE}], up to ${MAX_CONCURRENT} nodes at once"
 # NUM_SHARDS and TASK are exported so the sbatch uses them regardless of the
