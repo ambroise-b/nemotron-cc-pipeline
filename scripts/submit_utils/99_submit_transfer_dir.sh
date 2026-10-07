@@ -32,11 +32,19 @@ fi
 REPO_DIR="/users/aborbely/repos/nemotron_cc_pipeline"
 
 # --- What to copy ------------------------------------------------------------
-#export TRANSFER_SRC="${SCRATCH}/nemotron-cc-pipeline-CC-MAIN-2023-06/substring_dedup"
-#export TRANSFER_DST="${STORE}/datasets/apertus-implementation-nemotron-cc/CC-MAIN-2023-06"
+#export TRANSFER_SRC="${SCRATCH}/nemotron-cc-pipeline-CC-MAIN-2025-21/substring_dedup"
+#export TRANSFER_DST="${STORE}/datasets/apertus-implementation-nemotron-cc/CC-MAIN-2025-21"
 
-export TRANSFER_SRC="${SCRATCH}/nemotron-cc-pipeline-CC-MAIN-2023-06/quality_labeling"
-export TRANSFER_DST="${STORE}/datasets/apertus-implementation-nemotron-cc/CC-MAIN-2023-06"
+#export TRANSFER_SRC="${SCRATCH}/nemotron-cc-pipeline-CC-MAIN-2025-21/quality_labeling"
+#export TRANSFER_DST="${STORE}/datasets/apertus-implementation-nemotron-cc/CC-MAIN-2025-21"
+
+export TRANSFER_SRC="${SCRATCH}/nemotron-cc-pipeline-CC-MAIN-2025-21/sdg_output"
+export TRANSFER_DST="${STORE}/datasets/apertus-implementation-nemotron-cc/CC-MAIN-2025-21"
+
+
+# --- SLURM reservation (optional) --------------------------------------------
+RESERVATION="SD-69241-apertus-1-5-0"
+#RESERVATION=""
 
 # Walltime: ~1-3 GB/s aggregate on Lustre, so 1-6 TB lands well inside 12h.
 # The xfer partition caps at 24h (1-00:00:00) if you ever need more.
@@ -57,6 +65,8 @@ SRC_SIZE="$(du -sh --apparent-size "${TRANSFER_SRC}" | cut -f1)"
 echo "Transferring ${SRC_SIZE}:"
 echo "  from: ${TRANSFER_SRC}"
 echo "  to  : ${TRANSFER_DST%/}/${BASE}"
-echo "  time: ${TIME_LIMIT} on partition xfer (billing=0 — does not use the compute allocation)"
+#echo "  time: ${TIME_LIMIT} on partition xfer (billing=0 — does not use the compute allocation)"
 
-sbatch --time="${TIME_LIMIT}" scripts/slurm/transfer_dir.sbatch
+sbatch ${RESERVATION:+--reservation="${RESERVATION}"} \
+    --time="${TIME_LIMIT}" \
+    scripts/slurm/transfer_dir.sbatch

@@ -24,12 +24,13 @@ fi
 
 # --- Array sizing ------------------------------------------------------------
 # as a rough estimate to know num_shards we (GB_bucket_18 + GB_bucket_19) / 0.258
-export NUM_SHARDS="${NUM_SHARDS:-470}"
-MAX_CONCURRENT="${MAX_CONCURRENT:-100}"
+export NUM_SHARDS="${NUM_SHARDS:-500}"
+MAX_CONCURRENT="${MAX_CONCURRENT:-150}"
 
 # 2014 : 470 shards
 # 2017 : 720 shards
 # 2023 : 670 shards
+# 2025 : 500 shards
 # 2026 : 480 shards
 
 # Ray CPU slots per node (max concurrent map tasks). Default 64; lower via

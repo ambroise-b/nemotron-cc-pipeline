@@ -21,10 +21,10 @@
 
 #SBATCH --job-name=transfer-dir
 #SBATCH --account=infra01
-#SBATCH --partition=xfer
+#SBATCH --partition=normal
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=8
+#SBATCH --cpus-per-task=16
 #SBATCH --time=12:00:00
 #SBATCH --no-requeue
 #SBATCH --output=/users/%u/repos/nemotron_cc_pipeline/logs/transfer_%j.log
